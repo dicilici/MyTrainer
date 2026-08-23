@@ -1,0 +1,32 @@
+syntax="proto3";
+
+package receive;
+
+option go_package="train/receive";
+
+service RemoteLog{
+  rpc DatabaseRemote(DatabaseMsg) returns(DatabaseMsgRe);//数据库外部消息，训练端不需要发送
+  rpc TrainRemote(TrainMsg) returns(TrainMsgRe);//训练端外部消息，数据库不需要发送
+}
+
+message DatabaseMsg{
+  string Status=1;//回报时的模块，比如：在数据端的controller/worker.go中回报时Status为controller
+  string LogMsg=2;//具体消息
+  string TaskId=3;//任务id
+}
+
+message DatabaseMsgRe{
+  bool IsOk=1;//状态是否正常
+  string ErrorMsg=2;//错误消息
+}
+
+message TrainMsg{
+  string Status=1;//状态，分为排队中，准备中，运行中，已完成，已失败
+  string LogMsg=2;//具体消息
+  string TaskId=3;//任务id
+}
+
+message TrainMsgRe {
+  bool IsOk=1;//状态是否正常
+  string ErrorMsg=2;//错误信息
+}

@@ -1,0 +1,40 @@
+syntax="proto3";
+
+package dbHandler;
+
+option go_package="train/Database";
+
+service DatabaseLink{
+  rpc SendToDatabase(DatabaseConfig) returns(Response);
+  rpc Cancel(CancelMessage) returns(CancelResponse);
+}
+
+message DatabaseConfig{
+  string Account=1;
+  string Password=2;
+  repeated DataCriteria Criterias=3;
+  string TrainURL=4;
+  string DBType=5;
+  string Id=6;
+  string RemoteLogURL=7;
+}
+
+message DataCriteria{
+  string Field=1;
+  string Operator=2;
+  string Value=3;
+}
+
+message Response{
+  bool IsOk=1;
+  string Error=2;
+}
+
+message CancelMessage{
+  string Id=1;
+}
+
+message CancelResponse{
+  bool IsOK=1;
+  string Error=2;
+}

@@ -1,0 +1,45 @@
+syntax="proto3";
+
+package send;
+
+option go_package="send";
+
+service WithTrain{
+  rpc Check(CheckStatus) returns(CheckResponse);//检查训练段是否存活
+  rpc SendTrain(ToTrain) returns(ToTrainResponse);//将预处理好的数据发送给训练端
+  rpc Finish(FinishMessage) returns(ToTrainResponse);//通知训练端：某任务数据已全部发送完毕
+  rpc ReportError(ErrorMessage) returns(ToTrainResponse);//数据端通知训练端：预处理出错
+}
+
+message CheckStatus{}
+
+message CheckResponse{
+  bool IsOK=1;//状态是否正常
+  string Msg=2;//具体消息
+}
+
+message Tensor{
+  repeated int64 Dim=1;//张量形状
+  bytes TensorContent=2;//原始张量数据
+}
+
+message ToTrain{
+  string Type=1;//识别任务中，该数据应该被分为哪一类
+  map<string,Tensor> inputs=2;//输出张量，若只有文本数据，则键为txt，若只有图片数据，则键为图片对应的文件后缀，若文本图片混合，则键为image的为图片Tensor，键为word的为文本Tensor
+  string DType=3;//数据类型，若是文本则为txt，若是图片则为image，文本图片混合则为mix
+  string Id=4;//训练任务 id，标识该数据属于哪个任务
+}
+
+message ToTrainResponse{
+  bool IsOK=1;//状态是否正常
+  string Msg=2;//具体信息
+}
+
+message FinishMessage{
+  string Id=1;//训练任务 id，标识哪个任务的数据已发送完成
+}
+
+message ErrorMessage{
+  string Id=1;//任务 id
+  string Error=2;//错误信息
+}

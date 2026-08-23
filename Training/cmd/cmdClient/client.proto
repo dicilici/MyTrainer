@@ -1,0 +1,83 @@
+syntax="proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+package cmdClient;
+
+option go_package="train/cmdClient";
+
+service ManagerLink{
+  rpc CheckManager(google.protobuf.Empty) returns(google.protobuf.Empty);
+  rpc ApplyManager(ApplyMessage) returns(ApplyResponse);
+  rpc TaskManager(TaskMessage) returns(TaskResponse);
+  rpc CancelManager(CancelMessage) returns(CancelResponse);
+  rpc Exit(ExitMessage) returns(ExitResponse);
+  rpc DeleteTaskDb(DeleteMessage) returns(DeleteResponse);
+  rpc ViewTaskDb(ViewMessage) returns(ViewResponse);
+}
+
+message ApplyMessage{
+  string path=1;
+  string name=2;
+}
+
+message ApplyResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+}
+
+message TaskMessage{
+  bool All=1;
+  string id=2;
+  string name=3;
+}
+
+message TaskResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+  string msg=3;
+}
+
+message CancelMessage{
+  bool All=1;
+  string id=2;
+  string name=3;
+}
+
+message CancelResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+}
+
+message ExitMessage{
+  string name=1;
+}
+
+message ExitResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+}
+
+message ViewMessage{
+  string key=1;
+  google.protobuf.Timestamp time=2;
+}
+
+message ViewResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+  string msg=3;
+}
+
+message DeleteMessage{
+  string key=1;
+  google.protobuf.Timestamp time=2;
+}
+
+message DeleteResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+}
+
+

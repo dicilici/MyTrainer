@@ -1,0 +1,32 @@
+syntax="proto3";
+
+package receive;
+
+option go_package="database/report";
+
+service RemoteLog{
+  rpc DatabaseRemote(DatabaseMsg) returns(DatabaseMsgRe);//数据库外部消息，训练端不需要发送
+  rpc TrainRemote(TrainMsg) returns(TrainMsgRe);//训练端外部消息，数据库不需要发送
+}
+
+message DatabaseMsg{
+  string Status=1;
+  string LogMsg=2;
+  string TaskId=3;
+}
+
+message DatabaseMsgRe{
+  bool IsOk=1;
+  string ErrorMsg=2;
+}
+
+message TrainMsg{
+  string Status=1;//状态，分为排队中，准备中，运行中，已完成，已失败
+  string LogMsg=2;//具体消息
+  string TaskId=3;//任务id
+}
+
+message TrainMsgRe {
+  bool IsOk=1;//状态是否正常
+  string ErrorMsg=2;//错误信息
+}
