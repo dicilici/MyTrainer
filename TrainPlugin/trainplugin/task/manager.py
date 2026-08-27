@@ -9,29 +9,16 @@ import contextlib
 import logging
 import os
 import queue
-import re
 import threading
 import time
 from typing import Any, Callable, Optional
 
 from ..data.bufferfile import append_samples, read_samples
+from ..util import parse_duration
 from . import status
 from .task import TaskCancelled, TrainingTask
 
 logger = logging.getLogger(__name__)
-
-_TIMEOUT_UNITS = {"d": 86400, "h": 3600, "m": 60, "s": 1}
-
-
-def parse_timeout(s: str) -> Optional[float]:
-    """解析训练限时字符串（d/h/m/s 自由组合，如 1h30m、90m）为秒数；空或非法返回 None。"""
-    if not s:
-        return None
-    total = 0.0
-    for num, unit in re.findall(r"(\d+)([dhms])", s):
-        total += int(num) * _TIMEOUT_UNITS[unit]
-    return total or None
-
 
 class RWLock:
     """基于 Condition 的读者-写者锁。"""
@@ -252,7 +239,7 @@ class TaskManager:
         self._remove_file(task.id)
 
     def _start_timeout(self, task: TrainingTask) -> None:
-        seconds = parse_timeout(task.train_config.timeout)
+        seconds = parse_duration(task.train_config.timeout)
         if seconds:
             task.timeout_timer = threading.Timer(seconds, self._on_timeout, args=(task,))
             task.timeout_timer.start()
