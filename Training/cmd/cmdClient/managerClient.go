@@ -21,6 +21,7 @@ type ManagerClient interface {
 	Disconnect() error
 	ViewTaskDb(message *ViewMessage) error
 	DeleteTaskDb(message *DeleteMessage) error
+	CheckNode(message *CheckNodeMessage) (*CheckNodeResponse, error)
 }
 
 type DefaultManagerClient struct {
@@ -52,7 +53,9 @@ func (c *DefaultManagerClient) Apply(message *ApplyMessage) error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		a, err := c.client.ApplyManager(c.ctx, message)
+		a, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ApplyResponse, error) {
+			return c.client.ApplyManager(c.ctx, message)
+		})
 		if err != nil {
 			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 			return err
@@ -72,7 +75,9 @@ func (c *DefaultManagerClient) Task(message *TaskMessage) error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		t, err := c.client.TaskManager(c.ctx, message)
+		t, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*TaskResponse, error) {
+			return c.client.TaskManager(c.ctx, message)
+		})
 		if err != nil {
 			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 			return err
@@ -92,7 +97,9 @@ func (c *DefaultManagerClient) Cancel(message *CancelMessage) error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		ca, err := c.client.CancelManager(c.ctx, message)
+		ca, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CancelResponse, error) {
+			return c.client.CancelManager(c.ctx, message)
+		})
 		if err != nil {
 			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 			return err
@@ -110,8 +117,23 @@ func (c *DefaultManagerClient) Disconnect() error {
 	return c.conn.Close()
 }
 
+func (c *DefaultManagerClient) CheckNode(message *CheckNodeMessage) (*CheckNodeResponse, error) {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	select {
+	case <-c.ctx.Done():
+		return nil, c.ctx.Err()
+	default:
+		return pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CheckNodeResponse, error) {
+			return c.client.CheckNode(c.ctx, message)
+		})
+	}
+}
+
 func (c *DefaultManagerClient) Exit(message *ExitMessage) error {
-	e, err := c.client.Exit(c.ctx, message)
+	e, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ExitResponse, error) {
+		return c.client.Exit(c.ctx, message)
+	})
 	if err != nil {
 		pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 		return err
@@ -134,7 +156,9 @@ func (c *DefaultManagerClient) Check() error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		_, err := c.client.CheckManager(c.ctx, &emptypb.Empty{})
+		_, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*emptypb.Empty, error) {
+			return c.client.CheckManager(c.ctx, &emptypb.Empty{})
+		})
 		if err != nil {
 			return err
 		}
@@ -149,7 +173,9 @@ func (c *DefaultManagerClient) ViewTaskDb(message *ViewMessage) error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		v, err := c.client.ViewTaskDb(c.ctx, message)
+		v, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ViewResponse, error) {
+			return c.client.ViewTaskDb(c.ctx, message)
+		})
 		if err != nil {
 			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 			return err
@@ -169,7 +195,9 @@ func (c *DefaultManagerClient) DeleteTaskDb(message *DeleteMessage) error {
 	case <-c.ctx.Done():
 		return c.ctx.Err()
 	default:
-		d, err := c.client.DeleteTaskDb(c.ctx, message)
+		d, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*DeleteResponse, error) {
+			return c.client.DeleteTaskDb(c.ctx, message)
+		})
 		if err != nil {
 			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
 			return err

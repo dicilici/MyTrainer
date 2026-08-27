@@ -22,6 +22,7 @@ const (
 	Training_SendToTrain_FullMethodName    = "/sender.Training/SendToTrain"
 	Training_QueryTraining_FullMethodName  = "/sender.Training/QueryTraining"
 	Training_CancelTraining_FullMethodName = "/sender.Training/CancelTraining"
+	Training_CheckNode_FullMethodName      = "/sender.Training/CheckNode"
 )
 
 // TrainingClient is the client API for Training service.
@@ -31,6 +32,7 @@ type TrainingClient interface {
 	SendToTrain(ctx context.Context, in *SendMessage, opts ...grpc.CallOption) (*Response, error)
 	QueryTraining(ctx context.Context, in *Query, opts ...grpc.CallOption) (*QueryResponse, error)
 	CancelTraining(ctx context.Context, in *Cancel, opts ...grpc.CallOption) (*CancelResponse, error)
+	CheckNode(ctx context.Context, in *CheckNodeRequest, opts ...grpc.CallOption) (*CheckNodeReply, error)
 }
 
 type trainingClient struct {
@@ -71,6 +73,16 @@ func (c *trainingClient) CancelTraining(ctx context.Context, in *Cancel, opts ..
 	return out, nil
 }
 
+func (c *trainingClient) CheckNode(ctx context.Context, in *CheckNodeRequest, opts ...grpc.CallOption) (*CheckNodeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckNodeReply)
+	err := c.cc.Invoke(ctx, Training_CheckNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TrainingServer is the server API for Training service.
 // All implementations must embed UnimplementedTrainingServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type TrainingServer interface {
 	SendToTrain(context.Context, *SendMessage) (*Response, error)
 	QueryTraining(context.Context, *Query) (*QueryResponse, error)
 	CancelTraining(context.Context, *Cancel) (*CancelResponse, error)
+	CheckNode(context.Context, *CheckNodeRequest) (*CheckNodeReply, error)
 	mustEmbedUnimplementedTrainingServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedTrainingServer) QueryTraining(context.Context, *Query) (*Quer
 }
 func (UnimplementedTrainingServer) CancelTraining(context.Context, *Cancel) (*CancelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CancelTraining not implemented")
+}
+func (UnimplementedTrainingServer) CheckNode(context.Context, *CheckNodeRequest) (*CheckNodeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckNode not implemented")
 }
 func (UnimplementedTrainingServer) mustEmbedUnimplementedTrainingServer() {}
 func (UnimplementedTrainingServer) testEmbeddedByValue()                  {}
@@ -172,6 +188,24 @@ func _Training_CancelTraining_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Training_CheckNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrainingServer).CheckNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Training_CheckNode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrainingServer).CheckNode(ctx, req.(*CheckNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Training_ServiceDesc is the grpc.ServiceDesc for Training service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Training_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelTraining",
 			Handler:    _Training_CancelTraining_Handler,
+		},
+		{
+			MethodName: "CheckNode",
+			Handler:    _Training_CheckNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -2,6 +2,7 @@ package report
 
 import (
 	"context"
+	"database/pkg"
 	"errors"
 	"sync"
 
@@ -41,7 +42,9 @@ func (r *DefaultReporter) Report(status string, logMsg string, taskId string) er
 	case <-r.ctx.Done():
 		return r.ctx.Err()
 	default:
-		re, err := r.client.DatabaseRemote(r.ctx, &DatabaseMsg{Status: status, LogMsg: logMsg, TaskId: taskId})
+		re, err := pkg.Retry(r.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*DatabaseMsgRe, error) {
+			return r.client.DatabaseRemote(r.ctx, &DatabaseMsg{Status: status, LogMsg: logMsg, TaskId: taskId})
+		})
 		if err != nil {
 			return err
 		}

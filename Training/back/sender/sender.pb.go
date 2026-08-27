@@ -501,6 +501,110 @@ func (x *CancelResponse) GetErrors() string {
 	return ""
 }
 
+type CheckNodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeRequest) Reset() {
+	*x = CheckNodeRequest{}
+	mi := &file_back_sender_sender_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeRequest) ProtoMessage() {}
+
+func (x *CheckNodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_back_sender_sender_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeRequest.ProtoReflect.Descriptor instead.
+func (*CheckNodeRequest) Descriptor() ([]byte, []int) {
+	return file_back_sender_sender_proto_rawDescGZIP(), []int{8}
+}
+
+type CheckNodeReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cpu           float32                `protobuf:"fixed32,1,opt,name=Cpu,proto3" json:"Cpu,omitempty"`
+	Memory        float32                `protobuf:"fixed32,2,opt,name=Memory,proto3" json:"Memory,omitempty"`
+	Disk          float32                `protobuf:"fixed32,3,opt,name=Disk,proto3" json:"Disk,omitempty"`
+	DiskIO        float32                `protobuf:"fixed32,4,opt,name=DiskIO,proto3" json:"DiskIO,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeReply) Reset() {
+	*x = CheckNodeReply{}
+	mi := &file_back_sender_sender_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeReply) ProtoMessage() {}
+
+func (x *CheckNodeReply) ProtoReflect() protoreflect.Message {
+	mi := &file_back_sender_sender_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeReply.ProtoReflect.Descriptor instead.
+func (*CheckNodeReply) Descriptor() ([]byte, []int) {
+	return file_back_sender_sender_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CheckNodeReply) GetCpu() float32 {
+	if x != nil {
+		return x.Cpu
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetMemory() float32 {
+	if x != nil {
+		return x.Memory
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetDisk() float32 {
+	if x != nil {
+		return x.Disk
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetDiskIO() float32 {
+	if x != nil {
+		return x.DiskIO
+	}
+	return 0
+}
+
 var File_back_sender_sender_proto protoreflect.FileDescriptor
 
 const file_back_sender_sender_proto_rawDesc = "" +
@@ -539,11 +643,18 @@ const file_back_sender_sender_proto_rawDesc = "" +
 	"\x06Cancel\"<\n" +
 	"\x0eCancelResponse\x12\x12\n" +
 	"\x04isOK\x18\x01 \x01(\bR\x04isOK\x12\x16\n" +
-	"\x06Errors\x18\x02 \x01(\tR\x06Errors2\xb1\x01\n" +
+	"\x06Errors\x18\x02 \x01(\tR\x06Errors\"\x12\n" +
+	"\x10CheckNodeRequest\"f\n" +
+	"\x0eCheckNodeReply\x12\x10\n" +
+	"\x03Cpu\x18\x01 \x01(\x02R\x03Cpu\x12\x16\n" +
+	"\x06Memory\x18\x02 \x01(\x02R\x06Memory\x12\x12\n" +
+	"\x04Disk\x18\x03 \x01(\x02R\x04Disk\x12\x16\n" +
+	"\x06DiskIO\x18\x04 \x01(\x02R\x06DiskIO2\xf0\x01\n" +
 	"\bTraining\x124\n" +
 	"\vSendToTrain\x12\x13.sender.SendMessage\x1a\x10.sender.Response\x125\n" +
 	"\rQueryTraining\x12\r.sender.Query\x1a\x15.sender.QueryResponse\x128\n" +
-	"\x0eCancelTraining\x12\x0e.sender.Cancel\x1a\x16.sender.CancelResponseB\x0eZ\ftrain/senderb\x06proto3"
+	"\x0eCancelTraining\x12\x0e.sender.Cancel\x1a\x16.sender.CancelResponse\x12=\n" +
+	"\tCheckNode\x12\x18.sender.CheckNodeRequest\x1a\x16.sender.CheckNodeReplyB\x0eZ\ftrain/senderb\x06proto3"
 
 var (
 	file_back_sender_sender_proto_rawDescOnce sync.Once
@@ -557,16 +668,18 @@ func file_back_sender_sender_proto_rawDescGZIP() []byte {
 	return file_back_sender_sender_proto_rawDescData
 }
 
-var file_back_sender_sender_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_back_sender_sender_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_back_sender_sender_proto_goTypes = []any{
-	(*Response)(nil),        // 0: sender.Response
-	(*SendMessage)(nil),     // 1: sender.SendMessage
-	(*SendDataset)(nil),     // 2: sender.SendDataset
-	(*SendTrainConfig)(nil), // 3: sender.SendTrainConfig
-	(*Query)(nil),           // 4: sender.Query
-	(*QueryResponse)(nil),   // 5: sender.QueryResponse
-	(*Cancel)(nil),          // 6: sender.Cancel
-	(*CancelResponse)(nil),  // 7: sender.CancelResponse
+	(*Response)(nil),         // 0: sender.Response
+	(*SendMessage)(nil),      // 1: sender.SendMessage
+	(*SendDataset)(nil),      // 2: sender.SendDataset
+	(*SendTrainConfig)(nil),  // 3: sender.SendTrainConfig
+	(*Query)(nil),            // 4: sender.Query
+	(*QueryResponse)(nil),    // 5: sender.QueryResponse
+	(*Cancel)(nil),           // 6: sender.Cancel
+	(*CancelResponse)(nil),   // 7: sender.CancelResponse
+	(*CheckNodeRequest)(nil), // 8: sender.CheckNodeRequest
+	(*CheckNodeReply)(nil),   // 9: sender.CheckNodeReply
 }
 var file_back_sender_sender_proto_depIdxs = []int32{
 	2, // 0: sender.SendMessage.Dataset:type_name -> sender.SendDataset
@@ -574,11 +687,13 @@ var file_back_sender_sender_proto_depIdxs = []int32{
 	1, // 2: sender.Training.SendToTrain:input_type -> sender.SendMessage
 	4, // 3: sender.Training.QueryTraining:input_type -> sender.Query
 	6, // 4: sender.Training.CancelTraining:input_type -> sender.Cancel
-	0, // 5: sender.Training.SendToTrain:output_type -> sender.Response
-	5, // 6: sender.Training.QueryTraining:output_type -> sender.QueryResponse
-	7, // 7: sender.Training.CancelTraining:output_type -> sender.CancelResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	8, // 5: sender.Training.CheckNode:input_type -> sender.CheckNodeRequest
+	0, // 6: sender.Training.SendToTrain:output_type -> sender.Response
+	5, // 7: sender.Training.QueryTraining:output_type -> sender.QueryResponse
+	7, // 8: sender.Training.CancelTraining:output_type -> sender.CancelResponse
+	9, // 9: sender.Training.CheckNode:output_type -> sender.CheckNodeReply
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -595,7 +710,7 @@ func file_back_sender_sender_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_back_sender_sender_proto_rawDesc), len(file_back_sender_sender_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

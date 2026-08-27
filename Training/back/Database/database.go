@@ -38,6 +38,7 @@ func NewDatabaseConfig(c config.Config) *DatabaseConfig {
 type DatabaseHandler interface {
 	Link() error
 	Cancel() error
+	CheckNode() (*CheckNodeReply, error)
 	Disconnect() error
 }
 
@@ -87,7 +88,9 @@ func (h *DefaultDatabaseHandler) Link() error {
 		}
 		d := NewDatabaseConfig(h.c)
 		d.Id = h.Id
-		re, err := h.client.SendToDatabase(h.ctx, d)
+		re, err := pkg.Retry(h.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*Response, error) {
+			return h.client.SendToDatabase(h.ctx, d)
+		})
 		if err != nil {
 			pkg.MuxLog(file, err, h.Id, false, h.mux)
 			return err
@@ -119,7 +122,9 @@ func (h *DefaultDatabaseHandler) Cancel() error {
 		c := &CancelMessage{
 			Id: h.Id,
 		}
-		re, err := h.client.Cancel(h.ctx, c)
+		re, err := pkg.Retry(h.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CancelResponse, error) {
+			return h.client.Cancel(h.ctx, c)
+		})
 		if err != nil {
 			pkg.MuxLog(file, err, h.Id, false, h.mux)
 			return err
@@ -131,6 +136,19 @@ func (h *DefaultDatabaseHandler) Cancel() error {
 			pkg.MuxLogWithString(file, "The database connection has been cancelled", h.Id, false, h.mux)
 		}
 		return nil
+	}
+}
+
+func (h *DefaultDatabaseHandler) CheckNode() (*CheckNodeReply, error) {
+	h.wg.Add(1)
+	defer h.wg.Done()
+	select {
+	case <-h.ctx.Done():
+		return nil, h.ctx.Err()
+	default:
+		return pkg.Retry(h.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CheckNodeReply, error) {
+			return h.client.CheckNode(h.ctx, &CheckNodeRequest{})
+		})
 	}
 }
 

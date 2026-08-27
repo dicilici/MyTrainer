@@ -171,6 +171,16 @@ func (r *DefaultReceiver) Cancel(ctx context.Context, c *CancelMessage) (*Cancel
 	}, nil
 }
 
+func (r *DefaultReceiver) CheckNode(ctx context.Context, _ *CheckNodeRequest) (*CheckNodeReply, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	cpu, memory, disk, diskIO := pkg.CollectMetrics()
+	return &CheckNodeReply{Cpu: cpu, Memory: memory, Disk: disk, DiskIO: diskIO}, nil
+}
+
 func (receiver *DefaultReceiver) Run(wg *sync.WaitGroup) error {
 	list, err := net.Listen("tcp", "50051")
 	if err != nil {

@@ -38,6 +38,7 @@ type Client interface {
 	Send() error
 	Query() (error, string)
 	Cancel() error
+	CheckNode() (*CheckNodeReply, error)
 	Disconnect() error
 }
 
@@ -85,7 +86,9 @@ func (s *DefaultClient) Send() error {
 		defer file.Close()
 		senddataset := NewSendDataset(s.config.Dataset)
 		sendtrainconfig := NewSendTrainConfig(s.config.TrainConfig)
-		re, err := s.client.SendToTrain(s.ctx, &SendMessage{Dataset: senddataset, TrainConfig: sendtrainconfig, Id: s.Id, RemoteLogURL: os.Getenv("REMOTE_URL")})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*Response, error) {
+			return s.client.SendToTrain(s.ctx, &SendMessage{Dataset: senddataset, TrainConfig: sendtrainconfig, Id: s.Id, RemoteLogURL: os.Getenv("REMOTE_URL")})
+		})
 		if err != nil {
 			pkg.MuxLog(file, err, s.Id, false, s.mux)
 			return err
@@ -113,7 +116,9 @@ func (s *DefaultClient) Query() (error, string) {
 		}
 		defer file.Close()
 		var str string
-		re, err := s.client.QueryTraining(s.ctx, &Query{})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*QueryResponse, error) {
+			return s.client.QueryTraining(s.ctx, &Query{})
+		})
 		if err != nil {
 			pkg.MuxLog(file, err, s.Id, false, s.mux)
 			return err, ""
@@ -148,7 +153,9 @@ func (s *DefaultClient) Cancel() error {
 			pkg.MuxLog(file, err, s.Id, false, s.mux)
 			return err
 		}
-		re, err := s.client.CancelTraining(s.ctx, &Cancel{})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CancelResponse, error) {
+			return s.client.CancelTraining(s.ctx, &Cancel{})
+		})
 		if err != nil {
 			pkg.MuxLog(file, err, s.Id, false, s.mux)
 			return err
@@ -160,6 +167,19 @@ func (s *DefaultClient) Cancel() error {
 			pkg.MuxLogWithString(file, "Cancel training task", s.Id, false, s.mux)
 		}
 		return nil
+	}
+}
+
+func (s *DefaultClient) CheckNode() (*CheckNodeReply, error) {
+	s.wg.Add(1)
+	defer s.wg.Done()
+	select {
+	case <-s.ctx.Done():
+		return nil, s.ctx.Err()
+	default:
+		return pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CheckNodeReply, error) {
+			return s.client.CheckNode(s.ctx, &CheckNodeRequest{})
+		})
 	}
 }
 

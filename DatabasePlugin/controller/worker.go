@@ -81,17 +81,6 @@ func (w *DefaultWorker) Work(wid int, s send.Sender, h handler.Handler, m manage
 					_ = m.Stop(w.Id)
 					return nil
 				}
-				for i := 0; i < 5; i++ {
-					time.Sleep(time.Second * 10)
-					err = s.Finish()
-					if err == nil {
-						return nil
-					}
-					if errors.Is(err, send.ErrTaskStopped) {
-						_ = m.Stop(w.Id)
-						return nil
-					}
-				}
 				pkg.MuxLog(w.file, err, w.Id, false, w.mux)
 				if w.reporter != nil {
 					w.reporter.Report("controller", err.Error(), w.Id)

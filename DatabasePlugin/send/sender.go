@@ -67,7 +67,9 @@ func (s *DefaultSender) CheckStatus() error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		re, err := s.Client.Check(s.ctx, &CheckStatus{})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*CheckResponse, error) {
+			return s.Client.Check(s.ctx, &CheckStatus{})
+		})
 		if err != nil {
 			pkg.MuxLog(s.file, err, s.Id, false, s.mux)
 			return err
@@ -89,7 +91,9 @@ func (s *DefaultSender) SendToTrain(t *ToTrain) error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		re, err := s.Client.SendTrain(s.ctx, t)
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ToTrainResponse, error) {
+			return s.Client.SendTrain(s.ctx, t)
+		})
 		if err != nil {
 			pkg.MuxLog(s.file, err, s.Id, false, s.mux)
 			return err
@@ -113,7 +117,9 @@ func (s *DefaultSender) Finish() error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		re, err := s.Client.Finish(s.ctx, &FinishMessage{Id: s.Id})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ToTrainResponse, error) {
+			return s.Client.Finish(s.ctx, &FinishMessage{Id: s.Id})
+		})
 		if err != nil {
 			pkg.MuxLog(s.file, err, s.Id, false, s.mux)
 			return err
@@ -137,7 +143,9 @@ func (s *DefaultSender) ReportError(errMsg string) error {
 	case <-s.ctx.Done():
 		return s.ctx.Err()
 	default:
-		re, err := s.Client.ReportError(s.ctx, &ErrorMessage{Id: s.Id, Error: errMsg})
+		re, err := pkg.Retry(s.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*ToTrainResponse, error) {
+			return s.Client.ReportError(s.ctx, &ErrorMessage{Id: s.Id, Error: errMsg})
+		})
 		if err != nil {
 			pkg.MuxLog(s.file, err, s.Id, false, s.mux)
 			return err

@@ -671,6 +671,194 @@ func (x *DeleteResponse) GetErrorMsg() string {
 	return ""
 }
 
+type CheckNodeMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=Id,proto3" json:"Id,omitempty"` //任务 id，为空表示所有任务
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeMessage) Reset() {
+	*x = CheckNodeMessage{}
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeMessage) ProtoMessage() {}
+
+func (x *CheckNodeMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeMessage.ProtoReflect.Descriptor instead.
+func (*CheckNodeMessage) Descriptor() ([]byte, []int) {
+	return file_cmd_cmdClient_client_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CheckNodeMessage) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type CheckNodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsOK          bool                   `protobuf:"varint,1,opt,name=IsOK,proto3" json:"IsOK,omitempty"`
+	ErrorMsg      string                 `protobuf:"bytes,2,opt,name=ErrorMsg,proto3" json:"ErrorMsg,omitempty"`
+	Metrics       []*NodeMetrics         `protobuf:"bytes,3,rep,name=Metrics,proto3" json:"Metrics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeResponse) Reset() {
+	*x = CheckNodeResponse{}
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeResponse) ProtoMessage() {}
+
+func (x *CheckNodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeResponse.ProtoReflect.Descriptor instead.
+func (*CheckNodeResponse) Descriptor() ([]byte, []int) {
+	return file_cmd_cmdClient_client_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CheckNodeResponse) GetIsOK() bool {
+	if x != nil {
+		return x.IsOK
+	}
+	return false
+}
+
+func (x *CheckNodeResponse) GetErrorMsg() string {
+	if x != nil {
+		return x.ErrorMsg
+	}
+	return ""
+}
+
+func (x *CheckNodeResponse) GetMetrics() []*NodeMetrics {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+type NodeMetrics struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=Id,proto3" json:"Id,omitempty"`     //任务 id
+	Node          string                 `protobuf:"bytes,2,opt,name=Node,proto3" json:"Node,omitempty"` //train / database
+	Cpu           float32                `protobuf:"fixed32,3,opt,name=Cpu,proto3" json:"Cpu,omitempty"`
+	Memory        float32                `protobuf:"fixed32,4,opt,name=Memory,proto3" json:"Memory,omitempty"`
+	Disk          float32                `protobuf:"fixed32,5,opt,name=Disk,proto3" json:"Disk,omitempty"`
+	DiskIO        float32                `protobuf:"fixed32,6,opt,name=DiskIO,proto3" json:"DiskIO,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NodeMetrics) Reset() {
+	*x = NodeMetrics{}
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NodeMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NodeMetrics) ProtoMessage() {}
+
+func (x *NodeMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_cmd_cmdClient_client_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NodeMetrics.ProtoReflect.Descriptor instead.
+func (*NodeMetrics) Descriptor() ([]byte, []int) {
+	return file_cmd_cmdClient_client_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *NodeMetrics) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *NodeMetrics) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+func (x *NodeMetrics) GetCpu() float32 {
+	if x != nil {
+		return x.Cpu
+	}
+	return 0
+}
+
+func (x *NodeMetrics) GetMemory() float32 {
+	if x != nil {
+		return x.Memory
+	}
+	return 0
+}
+
+func (x *NodeMetrics) GetDisk() float32 {
+	if x != nil {
+		return x.Disk
+	}
+	return 0
+}
+
+func (x *NodeMetrics) GetDiskIO() float32 {
+	if x != nil {
+		return x.DiskIO
+	}
+	return 0
+}
+
 var File_cmd_cmdClient_client_proto protoreflect.FileDescriptor
 
 const file_cmd_cmdClient_client_proto_rawDesc = "" +
@@ -714,7 +902,20 @@ const file_cmd_cmdClient_client_proto_rawDesc = "" +
 	"\x04time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\"@\n" +
 	"\x0eDeleteResponse\x12\x12\n" +
 	"\x04IsOK\x18\x01 \x01(\bR\x04IsOK\x12\x1a\n" +
-	"\bErrorMsg\x18\x02 \x01(\tR\bErrorMsg2\xd3\x03\n" +
+	"\bErrorMsg\x18\x02 \x01(\tR\bErrorMsg\"\"\n" +
+	"\x10CheckNodeMessage\x12\x0e\n" +
+	"\x02Id\x18\x01 \x01(\tR\x02Id\"u\n" +
+	"\x11CheckNodeResponse\x12\x12\n" +
+	"\x04IsOK\x18\x01 \x01(\bR\x04IsOK\x12\x1a\n" +
+	"\bErrorMsg\x18\x02 \x01(\tR\bErrorMsg\x120\n" +
+	"\aMetrics\x18\x03 \x03(\v2\x16.cmdClient.NodeMetricsR\aMetrics\"\x87\x01\n" +
+	"\vNodeMetrics\x12\x0e\n" +
+	"\x02Id\x18\x01 \x01(\tR\x02Id\x12\x12\n" +
+	"\x04Node\x18\x02 \x01(\tR\x04Node\x12\x10\n" +
+	"\x03Cpu\x18\x03 \x01(\x02R\x03Cpu\x12\x16\n" +
+	"\x06Memory\x18\x04 \x01(\x02R\x06Memory\x12\x12\n" +
+	"\x04Disk\x18\x05 \x01(\x02R\x04Disk\x12\x16\n" +
+	"\x06DiskIO\x18\x06 \x01(\x02R\x06DiskIO2\x9b\x04\n" +
 	"\vManagerLink\x12>\n" +
 	"\fCheckManager\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12A\n" +
 	"\fApplyManager\x12\x17.cmdClient.ApplyMessage\x1a\x18.cmdClient.ApplyResponse\x12>\n" +
@@ -723,7 +924,8 @@ const file_cmd_cmdClient_client_proto_rawDesc = "" +
 	"\x04Exit\x12\x16.cmdClient.ExitMessage\x1a\x17.cmdClient.ExitResponse\x12C\n" +
 	"\fDeleteTaskDb\x12\x18.cmdClient.DeleteMessage\x1a\x19.cmdClient.DeleteResponse\x12=\n" +
 	"\n" +
-	"ViewTaskDb\x12\x16.cmdClient.ViewMessage\x1a\x17.cmdClient.ViewResponseB\x11Z\x0ftrain/cmdClientb\x06proto3"
+	"ViewTaskDb\x12\x16.cmdClient.ViewMessage\x1a\x17.cmdClient.ViewResponse\x12F\n" +
+	"\tCheckNode\x12\x1b.cmdClient.CheckNodeMessage\x1a\x1c.cmdClient.CheckNodeResponseB\x11Z\x0ftrain/cmdClientb\x06proto3"
 
 var (
 	file_cmd_cmdClient_client_proto_rawDescOnce sync.Once
@@ -737,7 +939,7 @@ func file_cmd_cmdClient_client_proto_rawDescGZIP() []byte {
 	return file_cmd_cmdClient_client_proto_rawDescData
 }
 
-var file_cmd_cmdClient_client_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_cmd_cmdClient_client_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_cmd_cmdClient_client_proto_goTypes = []any{
 	(*ApplyMessage)(nil),          // 0: cmdClient.ApplyMessage
 	(*ApplyResponse)(nil),         // 1: cmdClient.ApplyResponse
@@ -751,31 +953,37 @@ var file_cmd_cmdClient_client_proto_goTypes = []any{
 	(*ViewResponse)(nil),          // 9: cmdClient.ViewResponse
 	(*DeleteMessage)(nil),         // 10: cmdClient.DeleteMessage
 	(*DeleteResponse)(nil),        // 11: cmdClient.DeleteResponse
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),         // 13: google.protobuf.Empty
+	(*CheckNodeMessage)(nil),      // 12: cmdClient.CheckNodeMessage
+	(*CheckNodeResponse)(nil),     // 13: cmdClient.CheckNodeResponse
+	(*NodeMetrics)(nil),           // 14: cmdClient.NodeMetrics
+	(*timestamppb.Timestamp)(nil), // 15: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),         // 16: google.protobuf.Empty
 }
 var file_cmd_cmdClient_client_proto_depIdxs = []int32{
-	12, // 0: cmdClient.ViewMessage.time:type_name -> google.protobuf.Timestamp
-	12, // 1: cmdClient.DeleteMessage.time:type_name -> google.protobuf.Timestamp
-	13, // 2: cmdClient.ManagerLink.CheckManager:input_type -> google.protobuf.Empty
-	0,  // 3: cmdClient.ManagerLink.ApplyManager:input_type -> cmdClient.ApplyMessage
-	2,  // 4: cmdClient.ManagerLink.TaskManager:input_type -> cmdClient.TaskMessage
-	4,  // 5: cmdClient.ManagerLink.CancelManager:input_type -> cmdClient.CancelMessage
-	6,  // 6: cmdClient.ManagerLink.Exit:input_type -> cmdClient.ExitMessage
-	10, // 7: cmdClient.ManagerLink.DeleteTaskDb:input_type -> cmdClient.DeleteMessage
-	8,  // 8: cmdClient.ManagerLink.ViewTaskDb:input_type -> cmdClient.ViewMessage
-	13, // 9: cmdClient.ManagerLink.CheckManager:output_type -> google.protobuf.Empty
-	1,  // 10: cmdClient.ManagerLink.ApplyManager:output_type -> cmdClient.ApplyResponse
-	3,  // 11: cmdClient.ManagerLink.TaskManager:output_type -> cmdClient.TaskResponse
-	5,  // 12: cmdClient.ManagerLink.CancelManager:output_type -> cmdClient.CancelResponse
-	7,  // 13: cmdClient.ManagerLink.Exit:output_type -> cmdClient.ExitResponse
-	11, // 14: cmdClient.ManagerLink.DeleteTaskDb:output_type -> cmdClient.DeleteResponse
-	9,  // 15: cmdClient.ManagerLink.ViewTaskDb:output_type -> cmdClient.ViewResponse
-	9,  // [9:16] is the sub-list for method output_type
-	2,  // [2:9] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	15, // 0: cmdClient.ViewMessage.time:type_name -> google.protobuf.Timestamp
+	15, // 1: cmdClient.DeleteMessage.time:type_name -> google.protobuf.Timestamp
+	14, // 2: cmdClient.CheckNodeResponse.Metrics:type_name -> cmdClient.NodeMetrics
+	16, // 3: cmdClient.ManagerLink.CheckManager:input_type -> google.protobuf.Empty
+	0,  // 4: cmdClient.ManagerLink.ApplyManager:input_type -> cmdClient.ApplyMessage
+	2,  // 5: cmdClient.ManagerLink.TaskManager:input_type -> cmdClient.TaskMessage
+	4,  // 6: cmdClient.ManagerLink.CancelManager:input_type -> cmdClient.CancelMessage
+	6,  // 7: cmdClient.ManagerLink.Exit:input_type -> cmdClient.ExitMessage
+	10, // 8: cmdClient.ManagerLink.DeleteTaskDb:input_type -> cmdClient.DeleteMessage
+	8,  // 9: cmdClient.ManagerLink.ViewTaskDb:input_type -> cmdClient.ViewMessage
+	12, // 10: cmdClient.ManagerLink.CheckNode:input_type -> cmdClient.CheckNodeMessage
+	16, // 11: cmdClient.ManagerLink.CheckManager:output_type -> google.protobuf.Empty
+	1,  // 12: cmdClient.ManagerLink.ApplyManager:output_type -> cmdClient.ApplyResponse
+	3,  // 13: cmdClient.ManagerLink.TaskManager:output_type -> cmdClient.TaskResponse
+	5,  // 14: cmdClient.ManagerLink.CancelManager:output_type -> cmdClient.CancelResponse
+	7,  // 15: cmdClient.ManagerLink.Exit:output_type -> cmdClient.ExitResponse
+	11, // 16: cmdClient.ManagerLink.DeleteTaskDb:output_type -> cmdClient.DeleteResponse
+	9,  // 17: cmdClient.ManagerLink.ViewTaskDb:output_type -> cmdClient.ViewResponse
+	13, // 18: cmdClient.ManagerLink.CheckNode:output_type -> cmdClient.CheckNodeResponse
+	11, // [11:19] is the sub-list for method output_type
+	3,  // [3:11] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_cmd_cmdClient_client_proto_init() }
@@ -789,7 +997,7 @@ func file_cmd_cmdClient_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cmd_cmdClient_client_proto_rawDesc), len(file_cmd_cmdClient_client_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

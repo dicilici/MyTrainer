@@ -27,6 +27,7 @@ const (
 	ManagerLink_Exit_FullMethodName          = "/cmdClient.ManagerLink/Exit"
 	ManagerLink_DeleteTaskDb_FullMethodName  = "/cmdClient.ManagerLink/DeleteTaskDb"
 	ManagerLink_ViewTaskDb_FullMethodName    = "/cmdClient.ManagerLink/ViewTaskDb"
+	ManagerLink_CheckNode_FullMethodName     = "/cmdClient.ManagerLink/CheckNode"
 )
 
 // ManagerLinkClient is the client API for ManagerLink service.
@@ -40,6 +41,7 @@ type ManagerLinkClient interface {
 	Exit(ctx context.Context, in *ExitMessage, opts ...grpc.CallOption) (*ExitResponse, error)
 	DeleteTaskDb(ctx context.Context, in *DeleteMessage, opts ...grpc.CallOption) (*DeleteResponse, error)
 	ViewTaskDb(ctx context.Context, in *ViewMessage, opts ...grpc.CallOption) (*ViewResponse, error)
+	CheckNode(ctx context.Context, in *CheckNodeMessage, opts ...grpc.CallOption) (*CheckNodeResponse, error)
 }
 
 type managerLinkClient struct {
@@ -120,6 +122,16 @@ func (c *managerLinkClient) ViewTaskDb(ctx context.Context, in *ViewMessage, opt
 	return out, nil
 }
 
+func (c *managerLinkClient) CheckNode(ctx context.Context, in *CheckNodeMessage, opts ...grpc.CallOption) (*CheckNodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckNodeResponse)
+	err := c.cc.Invoke(ctx, ManagerLink_CheckNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ManagerLinkServer is the server API for ManagerLink service.
 // All implementations must embed UnimplementedManagerLinkServer
 // for forward compatibility.
@@ -131,6 +143,7 @@ type ManagerLinkServer interface {
 	Exit(context.Context, *ExitMessage) (*ExitResponse, error)
 	DeleteTaskDb(context.Context, *DeleteMessage) (*DeleteResponse, error)
 	ViewTaskDb(context.Context, *ViewMessage) (*ViewResponse, error)
+	CheckNode(context.Context, *CheckNodeMessage) (*CheckNodeResponse, error)
 	mustEmbedUnimplementedManagerLinkServer()
 }
 
@@ -161,6 +174,9 @@ func (UnimplementedManagerLinkServer) DeleteTaskDb(context.Context, *DeleteMessa
 }
 func (UnimplementedManagerLinkServer) ViewTaskDb(context.Context, *ViewMessage) (*ViewResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ViewTaskDb not implemented")
+}
+func (UnimplementedManagerLinkServer) CheckNode(context.Context, *CheckNodeMessage) (*CheckNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckNode not implemented")
 }
 func (UnimplementedManagerLinkServer) mustEmbedUnimplementedManagerLinkServer() {}
 func (UnimplementedManagerLinkServer) testEmbeddedByValue()                     {}
@@ -309,6 +325,24 @@ func _ManagerLink_ViewTaskDb_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ManagerLink_CheckNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckNodeMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerLinkServer).CheckNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ManagerLink_CheckNode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerLinkServer).CheckNode(ctx, req.(*CheckNodeMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ManagerLink_ServiceDesc is the grpc.ServiceDesc for ManagerLink service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -343,6 +377,10 @@ var ManagerLink_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ViewTaskDb",
 			Handler:    _ManagerLink_ViewTaskDb_Handler,
+		},
+		{
+			MethodName: "CheckNode",
+			Handler:    _ManagerLink_CheckNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

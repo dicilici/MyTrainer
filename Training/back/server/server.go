@@ -323,3 +323,41 @@ func (d *DefaultCmdServer) ViewTaskDb(ctx context.Context, m *ViewMessage) (*Vie
 		Msg:      str,
 	}, err
 }
+
+func (d *DefaultCmdServer) CheckNode(ctx context.Context, m *CheckNodeMessage) (*CheckNodeResponse, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	var items map[string][]interface{}
+	if m.Id == "" {
+		items = d.manager.GetMap()
+	} else {
+		v, err := d.manager.Get(m.Id)
+		if err != nil {
+			return &CheckNodeResponse{IsOK: false, ErrorMsg: err.Error()}, err
+		}
+		items = map[string][]interface{}{m.Id: v}
+	}
+
+	metrics := make([]*NodeMetrics, 0, len(items)*2)
+	for id, v := range items {
+		s := v[1].(sender.Client)
+		db := v[2].(Database.DatabaseHandler)
+
+		if r, err := s.CheckNode(); err == nil {
+			metrics = append(metrics, &NodeMetrics{Id: id, Node: "train", Cpu: r.Cpu, Memory: r.Memory, Disk: r.Disk, DiskIO: r.DiskIO})
+		} else {
+			pkg.MuxLog(d.file, err, id, false, d.mux)
+		}
+
+		if r, err := db.CheckNode(); err == nil {
+			metrics = append(metrics, &NodeMetrics{Id: id, Node: "database", Cpu: r.Cpu, Memory: r.Memory, Disk: r.Disk, DiskIO: r.DiskIO})
+		} else {
+			pkg.MuxLog(d.file, err, id, false, d.mux)
+		}
+	}
+
+	return &CheckNodeResponse{IsOK: true, Metrics: metrics}, nil
+}

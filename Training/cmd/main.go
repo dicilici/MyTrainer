@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"text/tabwriter"
 	"time"
 	"train/cmd/cmdClient"
 	receive "train/cmd/receiveremote"
@@ -110,9 +111,35 @@ func main() {
 				}
 				ss := timestamppb.New(s)
 				_ = m.DeleteTaskDb(&cmdClient.DeleteMessage{Key: args[0], Time: ss})
+			case "checknode":
+				id := ""
+				if len(args) > 0 {
+					id = args[0]
+				}
+				resp, err := m.CheckNode(&cmdClient.CheckNodeMessage{Id: id})
+				if err != nil {
+					fmt.Println(err)
+					pkg.MuxLog(file, err, strconv.Itoa(-1), false, mux)
+					continue
+				}
+				if !resp.IsOK {
+					fmt.Println(resp.ErrorMsg)
+					continue
+				}
+				printNodeTable(resp.Metrics)
 			default:
 				fmt.Println("Unknown command")
 			}
 		}
 	}
+}
+
+func printNodeTable(metrics []*cmdClient.NodeMetrics) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tNODE\tCPU\tMEMORY\tDISK\tDISKIO")
+	for _, m := range metrics {
+		fmt.Fprintf(w, "%s\t%s\t%.2f%%\t%.2f%%\t%.2f%%\t%.2f%%\n",
+			m.Id, m.Node, m.Cpu, m.Memory, m.Disk, m.DiskIO)
+	}
+	w.Flush()
 }

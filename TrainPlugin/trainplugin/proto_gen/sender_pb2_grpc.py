@@ -49,6 +49,11 @@ class TrainingStub:
                 request_serializer=sender__pb2.Cancel.SerializeToString,
                 response_deserializer=sender__pb2.CancelResponse.FromString,
                 _registered_method=True)
+        self.CheckNode = channel.unary_unary(
+                '/sender.Training/CheckNode',
+                request_serializer=sender__pb2.CheckNodeRequest.SerializeToString,
+                response_deserializer=sender__pb2.CheckNodeReply.FromString,
+                _registered_method=True)
 
 
 class TrainingServicer:
@@ -75,6 +80,13 @@ class TrainingServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CheckNode(self, request, context):
+        """查询训练端 CPU/内存/磁盘/磁盘IO 使用占比
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TrainingServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -92,6 +104,11 @@ def add_TrainingServicer_to_server(servicer, server):
                     servicer.CancelTraining,
                     request_deserializer=sender__pb2.Cancel.FromString,
                     response_serializer=sender__pb2.CancelResponse.SerializeToString,
+            ),
+            'CheckNode': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckNode,
+                    request_deserializer=sender__pb2.CheckNodeRequest.FromString,
+                    response_serializer=sender__pb2.CheckNodeReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -175,6 +192,33 @@ class Training:
             '/sender.Training/CancelTraining',
             sender__pb2.Cancel.SerializeToString,
             sender__pb2.CancelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CheckNode(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sender.Training/CheckNode',
+            sender__pb2.CheckNodeRequest.SerializeToString,
+            sender__pb2.CheckNodeReply.FromString,
             options,
             channel_credentials,
             insecure,

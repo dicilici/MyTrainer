@@ -67,13 +67,21 @@ class TrainingTask:
             self.error = message
             self.status = task_status.FAILED
 
+    def set_cancelled(self, message: str) -> None:
+        with self.lock:
+            self.error = message
+            self.status = task_status.CANCELLED
+
     def abort(self, message: str) -> None:
         with self.lock:
             self.error = message
             self.status = task_status.FAILED
+        self.abort_event.set()
+
+    def clear_data(self) -> None:
+        with self.lock:
             self.buffer = []
             self.loss_list = []
-        self.abort_event.set()
 
     def append_sample(self, sample: Tuple) -> None:
         with self.lock:

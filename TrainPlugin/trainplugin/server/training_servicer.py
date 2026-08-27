@@ -5,6 +5,7 @@ from typing import Optional
 
 import grpc
 
+from .. import metrics
 from ..proto_gen import sender_pb2, sender_pb2_grpc
 from ..task.manager import TaskManager
 from ..task.task import DatasetConfig, TrainConfig, TrainingTask
@@ -73,6 +74,11 @@ class TrainingServicer(sender_pb2_grpc.TrainingServicer):
         if task is None:
             return sender_pb2.CancelResponse(isOK=False, Errors="no active training task")
         return sender_pb2.CancelResponse(isOK=True)
+
+    def CheckNode(self, request, context):
+        _check_cancelled(context)
+        cpu, memory, disk, disk_io = metrics.collect()
+        return sender_pb2.CheckNodeReply(Cpu=cpu, Memory=memory, Disk=disk, DiskIO=disk_io)
 
     @staticmethod
     def _validate(request) -> Optional[str]:

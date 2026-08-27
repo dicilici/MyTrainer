@@ -321,6 +321,110 @@ func (x *CancelResponse) GetError() string {
 	return ""
 }
 
+type CheckNodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeRequest) Reset() {
+	*x = CheckNodeRequest{}
+	mi := &file_back_Database_dbHandler_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeRequest) ProtoMessage() {}
+
+func (x *CheckNodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_back_Database_dbHandler_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeRequest.ProtoReflect.Descriptor instead.
+func (*CheckNodeRequest) Descriptor() ([]byte, []int) {
+	return file_back_Database_dbHandler_proto_rawDescGZIP(), []int{5}
+}
+
+type CheckNodeReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cpu           float32                `protobuf:"fixed32,1,opt,name=Cpu,proto3" json:"Cpu,omitempty"`
+	Memory        float32                `protobuf:"fixed32,2,opt,name=Memory,proto3" json:"Memory,omitempty"`
+	Disk          float32                `protobuf:"fixed32,3,opt,name=Disk,proto3" json:"Disk,omitempty"`
+	DiskIO        float32                `protobuf:"fixed32,4,opt,name=DiskIO,proto3" json:"DiskIO,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckNodeReply) Reset() {
+	*x = CheckNodeReply{}
+	mi := &file_back_Database_dbHandler_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckNodeReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckNodeReply) ProtoMessage() {}
+
+func (x *CheckNodeReply) ProtoReflect() protoreflect.Message {
+	mi := &file_back_Database_dbHandler_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckNodeReply.ProtoReflect.Descriptor instead.
+func (*CheckNodeReply) Descriptor() ([]byte, []int) {
+	return file_back_Database_dbHandler_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *CheckNodeReply) GetCpu() float32 {
+	if x != nil {
+		return x.Cpu
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetMemory() float32 {
+	if x != nil {
+		return x.Memory
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetDisk() float32 {
+	if x != nil {
+		return x.Disk
+	}
+	return 0
+}
+
+func (x *CheckNodeReply) GetDiskIO() float32 {
+	if x != nil {
+		return x.DiskIO
+	}
+	return 0
+}
+
 var File_back_Database_dbHandler_proto protoreflect.FileDescriptor
 
 const file_back_Database_dbHandler_proto_rawDesc = "" +
@@ -345,10 +449,17 @@ const file_back_Database_dbHandler_proto_rawDesc = "" +
 	"\x02Id\x18\x01 \x01(\tR\x02Id\":\n" +
 	"\x0eCancelResponse\x12\x12\n" +
 	"\x04IsOK\x18\x01 \x01(\bR\x04IsOK\x12\x14\n" +
-	"\x05Error\x18\x02 \x01(\tR\x05Error2\x8f\x01\n" +
+	"\x05Error\x18\x02 \x01(\tR\x05Error\"\x12\n" +
+	"\x10CheckNodeRequest\"f\n" +
+	"\x0eCheckNodeReply\x12\x10\n" +
+	"\x03Cpu\x18\x01 \x01(\x02R\x03Cpu\x12\x16\n" +
+	"\x06Memory\x18\x02 \x01(\x02R\x06Memory\x12\x12\n" +
+	"\x04Disk\x18\x03 \x01(\x02R\x04Disk\x12\x16\n" +
+	"\x06DiskIO\x18\x04 \x01(\x02R\x06DiskIO2\xd4\x01\n" +
 	"\fDatabaseLink\x12@\n" +
 	"\x0eSendToDatabase\x12\x19.dbHandler.DatabaseConfig\x1a\x13.dbHandler.Response\x12=\n" +
-	"\x06Cancel\x12\x18.dbHandler.CancelMessage\x1a\x19.dbHandler.CancelResponseB\x10Z\x0etrain/Databaseb\x06proto3"
+	"\x06Cancel\x12\x18.dbHandler.CancelMessage\x1a\x19.dbHandler.CancelResponse\x12C\n" +
+	"\tCheckNode\x12\x1b.dbHandler.CheckNodeRequest\x1a\x19.dbHandler.CheckNodeReplyB\x10Z\x0etrain/Databaseb\x06proto3"
 
 var (
 	file_back_Database_dbHandler_proto_rawDescOnce sync.Once
@@ -362,22 +473,26 @@ func file_back_Database_dbHandler_proto_rawDescGZIP() []byte {
 	return file_back_Database_dbHandler_proto_rawDescData
 }
 
-var file_back_Database_dbHandler_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_back_Database_dbHandler_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_back_Database_dbHandler_proto_goTypes = []any{
-	(*DatabaseConfig)(nil), // 0: dbHandler.DatabaseConfig
-	(*DataCriteria)(nil),   // 1: dbHandler.DataCriteria
-	(*Response)(nil),       // 2: dbHandler.Response
-	(*CancelMessage)(nil),  // 3: dbHandler.CancelMessage
-	(*CancelResponse)(nil), // 4: dbHandler.CancelResponse
+	(*DatabaseConfig)(nil),   // 0: dbHandler.DatabaseConfig
+	(*DataCriteria)(nil),     // 1: dbHandler.DataCriteria
+	(*Response)(nil),         // 2: dbHandler.Response
+	(*CancelMessage)(nil),    // 3: dbHandler.CancelMessage
+	(*CancelResponse)(nil),   // 4: dbHandler.CancelResponse
+	(*CheckNodeRequest)(nil), // 5: dbHandler.CheckNodeRequest
+	(*CheckNodeReply)(nil),   // 6: dbHandler.CheckNodeReply
 }
 var file_back_Database_dbHandler_proto_depIdxs = []int32{
 	1, // 0: dbHandler.DatabaseConfig.Criterias:type_name -> dbHandler.DataCriteria
 	0, // 1: dbHandler.DatabaseLink.SendToDatabase:input_type -> dbHandler.DatabaseConfig
 	3, // 2: dbHandler.DatabaseLink.Cancel:input_type -> dbHandler.CancelMessage
-	2, // 3: dbHandler.DatabaseLink.SendToDatabase:output_type -> dbHandler.Response
-	4, // 4: dbHandler.DatabaseLink.Cancel:output_type -> dbHandler.CancelResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	5, // 3: dbHandler.DatabaseLink.CheckNode:input_type -> dbHandler.CheckNodeRequest
+	2, // 4: dbHandler.DatabaseLink.SendToDatabase:output_type -> dbHandler.Response
+	4, // 5: dbHandler.DatabaseLink.Cancel:output_type -> dbHandler.CancelResponse
+	6, // 6: dbHandler.DatabaseLink.CheckNode:output_type -> dbHandler.CheckNodeReply
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -394,7 +509,7 @@ func file_back_Database_dbHandler_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_back_Database_dbHandler_proto_rawDesc), len(file_back_Database_dbHandler_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

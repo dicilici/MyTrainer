@@ -118,9 +118,11 @@ class TaskManager:
         with self._lock:
             return self._tasks.get(task_id)
 
-    def receive_data(self, task_id: str, samples: list) -> None:
-        """将收到的样本路由到当前任务 buffer 或落盘文件。"""
+    def receive_data(self, task_id: str, samples: list) -> bool:
+        """将收到的样本路由到当前任务 buffer 或落盘文件，返回任务是否存在。"""
         with self._lock:
+            if task_id not in self._tasks:
+                return False
             running = self._running
             if running is not None and running.id == task_id:
                 target = running
@@ -136,6 +138,7 @@ class TaskManager:
         else:
             with lock.write_lock():
                 append_samples(self._file_path(task_id), samples)
+        return True
 
     def _file_path(self, task_id: str) -> str:
         return os.path.join(self._data_dir, f"{task_id}.txt")
@@ -171,7 +174,13 @@ class TaskManager:
         if task is None:
             return False
         self._reporter(task, status.FAILED, error)
+        queued = (task.status == status.QUEUED)
         task.abort(error)
+        if queued:
+            self._remove_file(task_id)
+        else:
+            task.clear_data()
+            self._remove_file(task_id)
         return True
 
     def cancel(self) -> Optional[TrainingTask]:
@@ -196,8 +205,6 @@ class TaskManager:
                 if self._stop.is_set():
                     return
                 continue
-
-            self._start_timeout(task)
 
             try:
                 prepared = self._prepare(task)
@@ -235,8 +242,8 @@ class TaskManager:
                 self._cleanup(task)
 
     def _cleanup(self, task: TrainingTask) -> None:
-        if task.timeout_timer is not None:
-            task.timeout_timer.cancel()
+        self._cancel_timeout(task)
+        task.clear_data()
         with self._lock:
             if self._running is task:
                 self._running = None
@@ -250,13 +257,20 @@ class TaskManager:
             task.timeout_timer = threading.Timer(seconds, self._on_timeout, args=(task,))
             task.timeout_timer.start()
 
+    def _cancel_timeout(self, task: TrainingTask) -> None:
+        if task.timeout_timer is not None:
+            task.timeout_timer.cancel()
+            task.timeout_timer = None
+
     def _on_timeout(self, task: TrainingTask) -> None:
         task.timeout_event.set()
         logger.warning("task %s timed out", task.id)
         self._reporter(task, status.CANCELLED, f"{task.id}:timeout")
+        task.set_cancelled("timeout")
 
     def _wait_data_ready(self, task: TrainingTask) -> bool:
         """等待数据接收完毕，返回 True 表示数据就绪，False 表示被取消或出错。"""
+        self._start_timeout(task)
         deadline = None if self._data_wait_timeout is None else time.time() + self._data_wait_timeout
         while not task.data_ready_event.is_set():
             if task.cancel_event.is_set():
@@ -267,29 +281,31 @@ class TaskManager:
                 return False
             if deadline is not None and time.time() >= deadline:
                 logger.warning("task %s: data wait timeout, start with %d samples", task.id, len(task.buffer))
-                return True
+                break
             task.data_ready_event.wait(timeout=0.1)
+        self._cancel_timeout(task)
         return True
 
     def _prepare(self, task: TrainingTask):
         if task.cancel_event.is_set():
-            task.set_error("cancelled before start")
             self._reporter(task, status.CANCELLED, "cancelled before start")
+            task.set_cancelled("cancelled before start")
             return None
 
         self._reporter(task, status.PREPARING, "collecting data")
+        task.set_status(status.PREPARING)
         if not self._wait_data_ready(task):
             if task.timeout_event.is_set():
                 return None
             if task.abort_event.is_set():
                 return None
-            task.set_error("cancelled while collecting data")
             self._reporter(task, status.CANCELLED, "cancelled while collecting data")
+            task.set_cancelled("cancelled while collecting data")
             return None
 
         if task.cancel_event.is_set():
-            task.set_error("cancelled before training")
             self._reporter(task, status.CANCELLED, "cancelled before training")
+            task.set_cancelled("cancelled before training")
             return None
 
         pending = self._load_file(task.id)
@@ -301,22 +317,23 @@ class TaskManager:
 
     def _train(self, task: TrainingTask, prepared) -> None:
         self._reporter(task, status.RUNNING, "training started")
+        task.set_status(status.RUNNING)
         try:
             self._train_fn(task, prepared)
         except TaskCancelled:
             if task.timeout_event.is_set():
                 return
-            task.set_error("cancelled during training")
             self._reporter(task, status.CANCELLED, "cancelled during training")
+            task.set_cancelled("cancelled during training")
             return
         except Exception as exc:
-            task.set_error(str(exc))
             self._reporter(task, status.FAILED, f"training failed: {exc}")
+            task.set_error(str(exc))
             return
 
         if task.cancel_event.is_set():
-            task.set_error("cancelled during training")
             self._reporter(task, status.CANCELLED, "cancelled during training")
+            task.set_cancelled("cancelled during training")
             return
 
         task.mark_done()

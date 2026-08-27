@@ -8,6 +8,7 @@ service Training {
   rpc SendToTrain(SendMessage) returns(Response);//将训练配置发送给训练端并初始化训练任务
   rpc QueryTraining(Query) returns(QueryResponse);//查询训练端当前训练进度
   rpc CancelTraining(Cancel) returns(CancelResponse);//取消训练信号
+  rpc CheckNode(CheckNodeRequest) returns(CheckNodeReply);//查询训练端 CPU/内存/磁盘/磁盘IO 使用占比
 }
 
 message Response{
@@ -54,4 +55,13 @@ message Cancel{}
 message CancelResponse{
   bool isOK=1;//状态是否正常
   string Errors=2;//错误信息
+}
+
+message CheckNodeRequest{}
+
+message CheckNodeReply{
+  float Cpu=1;
+  float Memory=2;
+  float Disk=3;
+  float DiskIO=4;
 }

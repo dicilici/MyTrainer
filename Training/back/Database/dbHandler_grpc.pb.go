@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	DatabaseLink_SendToDatabase_FullMethodName = "/dbHandler.DatabaseLink/SendToDatabase"
 	DatabaseLink_Cancel_FullMethodName         = "/dbHandler.DatabaseLink/Cancel"
+	DatabaseLink_CheckNode_FullMethodName      = "/dbHandler.DatabaseLink/CheckNode"
 )
 
 // DatabaseLinkClient is the client API for DatabaseLink service.
@@ -29,6 +30,7 @@ const (
 type DatabaseLinkClient interface {
 	SendToDatabase(ctx context.Context, in *DatabaseConfig, opts ...grpc.CallOption) (*Response, error)
 	Cancel(ctx context.Context, in *CancelMessage, opts ...grpc.CallOption) (*CancelResponse, error)
+	CheckNode(ctx context.Context, in *CheckNodeRequest, opts ...grpc.CallOption) (*CheckNodeReply, error)
 }
 
 type databaseLinkClient struct {
@@ -59,12 +61,23 @@ func (c *databaseLinkClient) Cancel(ctx context.Context, in *CancelMessage, opts
 	return out, nil
 }
 
+func (c *databaseLinkClient) CheckNode(ctx context.Context, in *CheckNodeRequest, opts ...grpc.CallOption) (*CheckNodeReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckNodeReply)
+	err := c.cc.Invoke(ctx, DatabaseLink_CheckNode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DatabaseLinkServer is the server API for DatabaseLink service.
 // All implementations must embed UnimplementedDatabaseLinkServer
 // for forward compatibility.
 type DatabaseLinkServer interface {
 	SendToDatabase(context.Context, *DatabaseConfig) (*Response, error)
 	Cancel(context.Context, *CancelMessage) (*CancelResponse, error)
+	CheckNode(context.Context, *CheckNodeRequest) (*CheckNodeReply, error)
 	mustEmbedUnimplementedDatabaseLinkServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedDatabaseLinkServer) SendToDatabase(context.Context, *Database
 }
 func (UnimplementedDatabaseLinkServer) Cancel(context.Context, *CancelMessage) (*CancelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Cancel not implemented")
+}
+func (UnimplementedDatabaseLinkServer) CheckNode(context.Context, *CheckNodeRequest) (*CheckNodeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckNode not implemented")
 }
 func (UnimplementedDatabaseLinkServer) mustEmbedUnimplementedDatabaseLinkServer() {}
 func (UnimplementedDatabaseLinkServer) testEmbeddedByValue()                      {}
@@ -138,6 +154,24 @@ func _DatabaseLink_Cancel_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DatabaseLink_CheckNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DatabaseLinkServer).CheckNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DatabaseLink_CheckNode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DatabaseLinkServer).CheckNode(ctx, req.(*CheckNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DatabaseLink_ServiceDesc is the grpc.ServiceDesc for DatabaseLink service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var DatabaseLink_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Cancel",
 			Handler:    _DatabaseLink_Cancel_Handler,
+		},
+		{
+			MethodName: "CheckNode",
+			Handler:    _DatabaseLink_CheckNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

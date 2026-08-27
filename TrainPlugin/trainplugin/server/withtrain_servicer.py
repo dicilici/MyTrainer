@@ -43,7 +43,8 @@ class WithTrainServicer(totrain_pb2_grpc.WithTrainServicer):
             self._task_log.write(task, task.status, str(exc))
             return totrain_pb2.ToTrainResponse(IsOK=False, Msg=str(exc))
 
-        self._manager.receive_data(request.Id, samples)
+        if not self._manager.receive_data(request.Id, samples):
+            return totrain_pb2.ToTrainResponse(IsOK=False, Msg="no matching training task")
 
         return totrain_pb2.ToTrainResponse(IsOK=True)
 
