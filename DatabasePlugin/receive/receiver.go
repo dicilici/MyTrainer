@@ -3,6 +3,7 @@ package Database
 import (
 	"context"
 	"database/config"
+	"database/errortable"
 	"database/handler"
 	"database/manager"
 	"database/pkg"
@@ -10,6 +11,7 @@ import (
 	"database/send"
 	"errors"
 	"google.golang.org/grpc"
+	"math"
 	"net"
 	"os"
 	"sync"
@@ -30,18 +32,20 @@ type DefaultReceiver struct {
 	Handle  handler.Handler
 	LogPath string
 	m       manager.Manager
+	et      errortable.ErrorTable
 	sever   *grpc.Server
 	mux     *sync.RWMutex
 	file    *os.File
 	UnimplementedDatabaseLinkServer
 }
 
-func NewDefaultReceiver(logPath string, m manager.Manager, idm manager.IdManager, ctx context.Context, mux *sync.RWMutex, file *os.File) *DefaultReceiver {
+func NewDefaultReceiver(logPath string, m manager.Manager, idm manager.IdManager, ctx context.Context, mux *sync.RWMutex, file *os.File, et errortable.ErrorTable) *DefaultReceiver {
 	return &DefaultReceiver{
 		ctx:     ctx,
 		LogPath: logPath,
 		Idm:     idm,
 		m:       m,
+		et:      et,
 		mux:     mux,
 		file:    file,
 	}
@@ -84,6 +88,22 @@ func (r *DefaultReceiver) SendToDatabase(ctx context.Context, m *DatabaseConfig)
 	}
 	h, err := handler.NewDefaultHandler(m.Account, m.Password, m.DBType, ss, r.ctx, m.Id, r.mux, r.file)
 	if err != nil {
+		pkg.MuxLog(r.file, err, m.Id, false, r.mux)
+		if rep != nil {
+			rep.Report("receive", err.Error(), m.Id)
+		}
+		return nil, err
+	}
+	total, err := h.Count()
+	if err != nil {
+		pkg.MuxLog(r.file, err, m.Id, false, r.mux)
+		if rep != nil {
+			rep.Report("receive", err.Error(), m.Id)
+		}
+		return nil, err
+	}
+	threshold := int64(math.Ceil(0.4 * float64(total)))
+	if err := r.et.Insert(m.Id, threshold); err != nil {
 		pkg.MuxLog(r.file, err, m.Id, false, r.mux)
 		if rep != nil {
 			rep.Report("receive", err.Error(), m.Id)

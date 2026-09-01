@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/controller"
+	"database/errortable"
 	"database/manager"
 	Database "database/receive"
 	"os"
@@ -26,9 +27,10 @@ func init() {
 	file, _ := os.OpenFile(LogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	mux := &sync.RWMutex{}
 	idm = manager.NewDefaultIdManager(mux, file)
-	m = manager.NewDefaultManager(mux, file)
-	r = Database.NewDefaultReceiver(LogPath, m, idm, ctx, mux, file)
-	c = controller.NewDefaultController(ctx, idm, m, mux, file)
+	et := errortable.NewDefaultErrorTable()
+	m = manager.NewDefaultManager(mux, file, et)
+	r = Database.NewDefaultReceiver(LogPath, m, idm, ctx, mux, file, et)
+	c = controller.NewDefaultController(ctx, idm, m, mux, file, et)
 }
 
 func main() {

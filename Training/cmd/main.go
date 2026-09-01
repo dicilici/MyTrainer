@@ -11,7 +11,6 @@ import (
 	"text/tabwriter"
 	"time"
 	"train/cmd/cmdClient"
-	receive "train/cmd/receiveremote"
 	"train/pkg"
 )
 
@@ -19,7 +18,6 @@ var conn *grpc.ClientConn
 var m cmdClient.ManagerClient
 var ctx context.Context
 var cancel context.CancelFunc
-var r receive.Receiver
 var mux *sync.RWMutex
 var file *os.File
 var LogPath string
@@ -43,17 +41,12 @@ func init() {
 			break
 		}
 	}
-	r = receive.NewDefaultReceiver(file, mux, LogPath)
 }
 
 func main() {
-	go r.Run()
 	defer file.Close()
 	for {
 		select {
-		case reErr := <-receive.Ch:
-			pkg.Log(file, reErr, strconv.Itoa(-1), true)
-			continue
 		default:
 			cmd, args := pkg.ReadCommand()
 			switch cmd {
@@ -127,6 +120,10 @@ func main() {
 					continue
 				}
 				printNodeTable(resp.Metrics)
+			case "joinnode":
+				_ = m.JoinNode(&cmdClient.JoinNodeMessage{NodeType: args[0], Urls: args[1:]})
+			case "deletenode":
+				_ = m.DeleteNode(&cmdClient.DeleteNodeMessage{Urls: args})
 			default:
 				fmt.Println("Unknown command")
 			}
@@ -136,10 +133,10 @@ func main() {
 
 func printNodeTable(metrics []*cmdClient.NodeMetrics) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tNODE\tCPU\tMEMORY\tDISK\tDISKIO")
+	fmt.Fprintln(w, "URL\tTRAIN/DATA\tCPU\tMEMORY\tDISK\tDISKIO\tID")
 	for _, m := range metrics {
-		fmt.Fprintf(w, "%s\t%s\t%.2f%%\t%.2f%%\t%.2f%%\t%.2f%%\n",
-			m.Id, m.Node, m.Cpu, m.Memory, m.Disk, m.DiskIO)
+		fmt.Fprintf(w, "%s\t%s\t%.2f%%\t%.2f%%\t%.2f%%\t%.2f%%\t%s\n",
+			m.Url, m.Node, m.Cpu, m.Memory, m.Disk, m.DiskIO, m.Id)
 	}
 	w.Flush()
 }

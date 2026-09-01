@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"database/errortable"
 	"database/handler"
 	"database/manager"
 	"database/pkg"
@@ -31,9 +32,10 @@ type DefaultController struct {
 	Top      int
 	mux      *sync.RWMutex
 	file     *os.File
+	et       errortable.ErrorTable
 }
 
-func NewDefaultController(ctx context.Context, idm manager.IdManager, m manager.Manager, mux *sync.RWMutex, file *os.File) *DefaultController {
+func NewDefaultController(ctx context.Context, idm manager.IdManager, m manager.Manager, mux *sync.RWMutex, file *os.File, et errortable.ErrorTable) *DefaultController {
 	var channelList []chan handler.HandleTask = make([]chan handler.HandleTask, 0, 10)
 	for index, _ := range channelList {
 		channelList[index] = make(chan handler.HandleTask, 15)
@@ -46,6 +48,7 @@ func NewDefaultController(ctx context.Context, idm manager.IdManager, m manager.
 		Top:      -1,
 		mux:      mux,
 		file:     file,
+		et:       et,
 	}
 }
 
@@ -92,7 +95,7 @@ func (m *DefaultController) Begin(tasks []string) error {
 					for ta := range m.TaskList[idCancel] {
 						id, find := m.Get()
 						if find == false {
-							w := NewDefaultWorker(m.ctx, m.TaskList[id], task, m.mux, m.file, e.R)
+							w := NewDefaultWorker(m.ctx, m.TaskList[id], task, m.mux, m.file, e.R, m.et)
 							go w.Work(id, e.S, e.H, m.M)
 						}
 						m.TaskList[id] <- ta
@@ -108,7 +111,7 @@ func (m *DefaultController) Begin(tasks []string) error {
 				default:
 					id, find := m.Get()
 					if find == false {
-						w := NewDefaultWorker(m.ctx, m.TaskList[id], task, m.mux, m.file, e.R)
+						w := NewDefaultWorker(m.ctx, m.TaskList[id], task, m.mux, m.file, e.R, m.et)
 						go w.Work(id, e.S, e.H, m.M)
 					}
 					m.TaskList[id] <- handleTask

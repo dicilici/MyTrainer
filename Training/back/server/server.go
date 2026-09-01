@@ -2,6 +2,7 @@ package cmdClient
 
 import (
 	"context"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"train/back/Database"
 	"train/back/commandLine"
 	"train/back/manager"
+	"train/back/noderegistry"
 	"train/back/sender"
 	"train/back/taskdb"
 	"train/config"
@@ -46,7 +48,9 @@ func (s *Single) SetSingle1(status bool, se *grpc.Server) {
 }
 
 func (s *Single) Check(m manager.Manager, se *grpc.Server) {
-	if m.GetNumber() == 0 {
+	if m.GetNumber() > 0 {
+		s.Single2.Store(true)
+	} else {
 		s.Single2.Store(false)
 	}
 	if s.Single1.Load() == false && s.Single2.Load() == false && s.Closed.Load() == false {
@@ -58,6 +62,7 @@ func (s *Single) Check(m manager.Manager, se *grpc.Server) {
 type CmdServer interface {
 	Run() error
 	GetLogPath() string
+	CheckSingle()
 }
 
 type DefaultCmdServer struct {
@@ -65,6 +70,7 @@ type DefaultCmdServer struct {
 	manager      manager.Manager
 	command      commandLine.CommandLogger
 	TaskDb       taskdb.TaskDb
+	Registry     noderegistry.Registry
 	LogPath      string
 	CmdSingle    chan int
 	TaskSingle   chan int
@@ -75,12 +81,13 @@ type DefaultCmdServer struct {
 	UnimplementedManagerLinkServer
 }
 
-func NewDefaultCmdServer(mux *sync.RWMutex, s *Single, logPath string, command commandLine.CommandLogger, idManager manager.IdManager, manager manager.Manager, taskdb taskdb.TaskDb, file *os.File) *DefaultCmdServer {
+func NewDefaultCmdServer(mux *sync.RWMutex, s *Single, logPath string, command commandLine.CommandLogger, idManager manager.IdManager, manager manager.Manager, taskdb taskdb.TaskDb, registry noderegistry.Registry, file *os.File) *DefaultCmdServer {
 	return &DefaultCmdServer{
 		idManager:    idManager,
 		manager:      manager,
 		command:      command,
 		TaskDb:       taskdb,
+		Registry:     registry,
 		LogPath:      logPath,
 		CmdSingle:    make(chan int, 1),
 		TaskSingle:   make(chan int, 1),
@@ -109,6 +116,10 @@ func (d *DefaultCmdServer) Run() error {
 
 func (d *DefaultCmdServer) GetLogPath() string {
 	return d.LogPath
+}
+
+func (d *DefaultCmdServer) CheckSingle() {
+	d.SingleDevice.Check(d.manager, d.Server)
 }
 
 func (d *DefaultCmdServer) CheckManager(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
@@ -164,7 +175,7 @@ func (d *DefaultCmdServer) ApplyManager(ctx context.Context, m *ApplyMessage) (*
 			ErrorMsg: err.Error(),
 		}, err
 	}
-	re := d.command.ExecuteByName(m.Name, args[1:])
+	re := d.command.ExecuteByName(m.Name, []interface{}{args.S, args.D, d.Registry, c.TrainBackendUrl, fmt.Sprint(c.Db.Address, ":", c.Db.Port)})
 	if re.Error != nil {
 		return &ApplyResponse{
 			IsOK:     false,
@@ -193,7 +204,7 @@ func (d *DefaultCmdServer) TaskManager(ctx context.Context, m *TaskMessage) (*Ta
 				return nil, ctx.Err()
 			default:
 			}
-			re = d.command.ExecuteByName(m.Name, []interface{}{v[1]})
+			re = d.command.ExecuteByName(m.Name, []interface{}{v.S})
 			if re.Error != nil {
 				return &TaskResponse{
 					IsOK:     false,
@@ -210,7 +221,7 @@ func (d *DefaultCmdServer) TaskManager(ctx context.Context, m *TaskMessage) (*Ta
 				ErrorMsg: err.Error(),
 			}, err
 		}
-		re = d.command.ExecuteByName(m.Name, []interface{}{v[1]})
+		re = d.command.ExecuteByName(m.Name, []interface{}{v.S})
 		if re.Error != nil {
 			return &TaskResponse{
 				IsOK:     false,
@@ -239,27 +250,13 @@ func (d *DefaultCmdServer) CancelManager(ctx context.Context, m *CancelMessage) 
 			ErrorMsg: err.Error(),
 		}, err
 	}
-	err = d.manager.Pop(m.Id)
-	if err != nil {
-		return &CancelResponse{
-			IsOK:     false,
-			ErrorMsg: err.Error(),
-		}, err
-	}
-	if len(d.manager.GetMap()) == 0 {
-		d.TaskSingle <- 1
-	}
-	ss := strings.Split(m.Id, "_")
-	i, _ := strconv.Atoi(ss[1])
-	d.idManager.InsertId(int32(i))
-	re := d.command.ExecuteByName(m.Name, []interface{}{t[1], t[2]})
+	re := d.command.ExecuteByName(m.Name, []interface{}{t.S, t.D})
 	if re.Error != nil {
 		return &CancelResponse{
 			IsOK:     false,
 			ErrorMsg: re.Error.Error(),
 		}, err
 	}
-	d.SingleDevice.Check(d.manager, d.Server)
 	return &CancelResponse{
 		IsOK:     true,
 		ErrorMsg: "",
@@ -324,40 +321,95 @@ func (d *DefaultCmdServer) ViewTaskDb(ctx context.Context, m *ViewMessage) (*Vie
 	}, err
 }
 
+func (d *DefaultCmdServer) JoinNode(ctx context.Context, m *JoinNodeMessage) (*JoinNodeResponse, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	args := []interface{}{d.Registry, m.NodeType}
+	for _, u := range m.Urls {
+		args = append(args, u)
+	}
+	re := d.command.ExecuteByName("joinnode", args)
+	if re.Error != nil {
+		return &JoinNodeResponse{IsOK: false, ErrorMsg: re.Error.Error()}, re.Error
+	}
+	return &JoinNodeResponse{IsOK: true, ErrorMsg: ""}, nil
+}
+
+func (d *DefaultCmdServer) DeleteNode(ctx context.Context, m *DeleteNodeMessage) (*DeleteNodeResponse, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+	args := []interface{}{d.Registry}
+	for _, u := range m.Urls {
+		args = append(args, u)
+	}
+	re := d.command.ExecuteByName("deletenode", args)
+	if re.Error != nil {
+		return &DeleteNodeResponse{IsOK: false, ErrorMsg: re.Error.Error()}, re.Error
+	}
+	return &DeleteNodeResponse{IsOK: true, ErrorMsg: ""}, nil
+}
+
 func (d *DefaultCmdServer) CheckNode(ctx context.Context, m *CheckNodeMessage) (*CheckNodeResponse, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
 	}
-	var items map[string][]interface{}
-	if m.Id == "" {
-		items = d.manager.GetMap()
-	} else {
+	var args []interface{}
+	if m.Id != "" {
 		v, err := d.manager.Get(m.Id)
 		if err != nil {
 			return &CheckNodeResponse{IsOK: false, ErrorMsg: err.Error()}, err
 		}
-		items = map[string][]interface{}{m.Id: v}
-	}
-
-	metrics := make([]*NodeMetrics, 0, len(items)*2)
-	for id, v := range items {
-		s := v[1].(sender.Client)
-		db := v[2].(Database.DatabaseHandler)
-
-		if r, err := s.CheckNode(); err == nil {
-			metrics = append(metrics, &NodeMetrics{Id: id, Node: "train", Cpu: r.Cpu, Memory: r.Memory, Disk: r.Disk, DiskIO: r.DiskIO})
-		} else {
-			pkg.MuxLog(d.file, err, id, false, d.mux)
+		trainUrl := v.C.TrainBackendUrl
+		dataUrl := fmt.Sprint(v.C.Db.Address, ":", v.C.Db.Port)
+		args = []interface{}{trainUrl, string(noderegistry.NodeTrain), m.Id, dataUrl, string(noderegistry.NodeDatabase), m.Id}
+	} else {
+		trainIds := make(map[string][]string)
+		dataIds := make(map[string][]string)
+		for id, v := range d.manager.GetMap() {
+			trainIds[v.C.TrainBackendUrl] = append(trainIds[v.C.TrainBackendUrl], id)
+			dataUrl := fmt.Sprint(v.C.Db.Address, ":", v.C.Db.Port)
+			dataIds[dataUrl] = append(dataIds[dataUrl], id)
 		}
-
-		if r, err := db.CheckNode(); err == nil {
-			metrics = append(metrics, &NodeMetrics{Id: id, Node: "database", Cpu: r.Cpu, Memory: r.Memory, Disk: r.Disk, DiskIO: r.DiskIO})
-		} else {
-			pkg.MuxLog(d.file, err, id, false, d.mux)
+		for _, n := range d.Registry.GetAll() {
+			var ids []string
+			if n.Type == noderegistry.NodeTrain {
+				ids = trainIds[n.Url]
+			} else {
+				ids = dataIds[n.Url]
+			}
+			args = append(args, n.Url, string(n.Type), strings.Join(ids, ","))
 		}
 	}
+	re := d.command.ExecuteByName("checknode", args)
+	if re.Error != nil {
+		return &CheckNodeResponse{IsOK: false, ErrorMsg: re.Error.Error()}, re.Error
+	}
+	return &CheckNodeResponse{IsOK: true, Metrics: parseNodeMetrics(re.Msg)}, nil
+}
 
-	return &CheckNodeResponse{IsOK: true, Metrics: metrics}, nil
+func parseNodeMetrics(s string) []*NodeMetrics {
+	var metrics []*NodeMetrics
+	for _, line := range strings.Split(s, "\n") {
+		if line == "" {
+			continue
+		}
+		f := strings.Split(line, "\t")
+		if len(f) != 7 {
+			continue
+		}
+		cpu, _ := strconv.ParseFloat(f[2], 32)
+		mem, _ := strconv.ParseFloat(f[3], 32)
+		disk, _ := strconv.ParseFloat(f[4], 32)
+		io, _ := strconv.ParseFloat(f[5], 32)
+		metrics = append(metrics, &NodeMetrics{Url: f[0], Node: f[1], Cpu: float32(cpu), Memory: float32(mem), Disk: float32(disk), DiskIO: float32(io), Id: f[6]})
+	}
+	return metrics
 }

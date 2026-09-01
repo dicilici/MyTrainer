@@ -30,6 +30,7 @@ var ioSem = make(chan struct{}, maxConcurrentIO)
 type Handler interface {
 	Handle(HandleTask) (send.ToTrain, error)
 	Get(lastID, limit int) ([]HandleTask, int, error)
+	Count() (int64, error)
 	DisConnect() error
 }
 
@@ -106,6 +107,25 @@ func (h *DefaultHandler) Get(lastID, limit int) ([]HandleTask, int, error) {
 		}
 		return re, cursor, nil
 	}
+}
+
+func (h *DefaultHandler) Count() (int64, error) {
+	h.wg.Add(1)
+	defer h.wg.Done()
+	select {
+	case <-h.ctx.Done():
+		return 0, h.ctx.Err()
+	default:
+	}
+	db, err := SelectFunc(h.db, h.selector)
+	if err != nil {
+		return 0, err
+	}
+	var total int64
+	if err := db.Model(&Data{}).Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 func (h *DefaultHandler) Handle(t HandleTask) (send.ToTrain, error) {

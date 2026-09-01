@@ -16,6 +16,8 @@ service ManagerLink{
   rpc DeleteTaskDb(DeleteMessage) returns(DeleteResponse);
   rpc ViewTaskDb(ViewMessage) returns(ViewResponse);
   rpc CheckNode(CheckNodeMessage) returns(CheckNodeResponse);
+  rpc JoinNode(JoinNodeMessage) returns(JoinNodeResponse);
+  rpc DeleteNode(DeleteNodeMessage) returns(DeleteNodeResponse);
 }
 
 message ApplyMessage{
@@ -92,12 +94,32 @@ message CheckNodeResponse{
 }
 
 message NodeMetrics{
-  string Id=1;//任务 id
-  string Node=2;//train / database
+  string Id=1;//该节点承载的所有任务 id（逗号分隔）
+  string Node=2;//TRAIN / DATA
   float Cpu=3;
   float Memory=4;
   float Disk=5;
   float DiskIO=6;
+  string Url=7;//节点地址
+}
+
+message JoinNodeMessage{
+  string NodeType=1;//TRAIN / DATA
+  repeated string Urls=2;
+}
+
+message JoinNodeResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
+}
+
+message DeleteNodeMessage{
+  repeated string Urls=1;
+}
+
+message DeleteNodeResponse{
+  bool IsOK=1;
+  string ErrorMsg=2;
 }
 
 

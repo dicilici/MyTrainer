@@ -22,6 +22,8 @@ type ManagerClient interface {
 	ViewTaskDb(message *ViewMessage) error
 	DeleteTaskDb(message *DeleteMessage) error
 	CheckNode(message *CheckNodeMessage) (*CheckNodeResponse, error)
+	JoinNode(message *JoinNodeMessage) error
+	DeleteNode(message *DeleteNodeMessage) error
 }
 
 type DefaultManagerClient struct {
@@ -206,6 +208,50 @@ func (c *DefaultManagerClient) DeleteTaskDb(message *DeleteMessage) error {
 			pkg.MuxLogWithString(c.file, d.ErrorMsg, strconv.Itoa(-1), true, c.mux)
 		}
 		fmt.Println("record deleted successfully")
+		return nil
+	}
+}
+
+func (c *DefaultManagerClient) JoinNode(message *JoinNodeMessage) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	select {
+	case <-c.ctx.Done():
+		return c.ctx.Err()
+	default:
+		j, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*JoinNodeResponse, error) {
+			return c.client.JoinNode(c.ctx, message)
+		})
+		if err != nil {
+			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
+			return err
+		}
+		if j.IsOK == false {
+			pkg.MuxLogWithString(c.file, j.ErrorMsg, strconv.Itoa(-1), true, c.mux)
+		}
+		fmt.Println("node(s) successfully joined")
+		return nil
+	}
+}
+
+func (c *DefaultManagerClient) DeleteNode(message *DeleteNodeMessage) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	select {
+	case <-c.ctx.Done():
+		return c.ctx.Err()
+	default:
+		de, err := pkg.Retry(c.ctx, pkg.DefaultRetries, pkg.DefaultInterval, func() (*DeleteNodeResponse, error) {
+			return c.client.DeleteNode(c.ctx, message)
+		})
+		if err != nil {
+			pkg.MuxLog(c.file, err, strconv.Itoa(-1), true, c.mux)
+			return err
+		}
+		if de.IsOK == false {
+			pkg.MuxLogWithString(c.file, de.ErrorMsg, strconv.Itoa(-1), true, c.mux)
+		}
+		fmt.Println("node(s) successfully deleted")
 		return nil
 	}
 }

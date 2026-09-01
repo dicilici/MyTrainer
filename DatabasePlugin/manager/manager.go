@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"database/config"
+	"database/errortable"
 	"database/handler"
 	"database/pkg"
 	"database/report"
@@ -35,14 +36,16 @@ type DefaultManager struct {
 	mu     sync.RWMutex
 	mux    *sync.RWMutex
 	file   *os.File
+	et     errortable.ErrorTable
 }
 
-func NewDefaultManager(mux *sync.RWMutex, file *os.File) *DefaultManager {
+func NewDefaultManager(mux *sync.RWMutex, file *os.File, et errortable.ErrorTable) *DefaultManager {
 	return &DefaultManager{
 		relate: make(map[string]Element, 10),
 		mu:     sync.RWMutex{},
 		mux:    mux,
 		file:   file,
+		et:     et,
 	}
 }
 
@@ -85,6 +88,7 @@ func (m *DefaultManager) Pop(id string) error {
 		return err
 	}
 	delete(m.relate, id)
+	m.et.Remove(id)
 	return nil
 }
 
@@ -108,5 +112,6 @@ func (m *DefaultManager) Stop(id string) error {
 	if e.Cancel != nil {
 		e.Cancel()
 	}
+	m.et.Remove(id)
 	return nil
 }
