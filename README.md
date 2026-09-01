@@ -19,16 +19,13 @@ A distributed training tool for large models, composed of three collaborative co
 ## 2. Architecture and Data Flow
 
 ```
- User ──stdin──►  Master Control (cmd)  ──ManagerLink──►  Master Control (back)
-                       ▲                                        │
-                       │ RemoteLog                              │ Training / DatabaseLink
-                       │                                        ▼
-   ┌───────────────────┴────────────────────┐   ┌─────────────────────────────┐
-   ▼                                        ▼   ▼                             ▼
- Training Node                        Data Node  Training Node           Data Node
- (TrainPlugin)                      (DatabasePlugin) (SendToTrain)   (SendToDatabase)
-   ▲                                        │
-   └──────────── WithTrain ─────────────────┘
+ User ──stdin──►  Master Control (cmd) ──ManagerLink──►  Master Control (back)
+                                                              ▲  │
+              RemoteLog (TrainRemote / DatabaseRemote) ───────┘  │
+                                                                 │ SendToTrain / SendToDatabase
+                                                                 ▼
+                       Training Node ◄──── WithTrain ──── Data Node
+                        (TrainPlugin)                   (DatabasePlugin)
 ```
 
 The end-to-end process of a training task:
@@ -46,16 +43,22 @@ The end-to-end process of a training task:
 ```
 program/
 ├── Training/                 # Go module "train" — Master Control
-│   ├── back/                 #   Business layer (ManagerLink server, task scheduling)
-│   ├── cmd/                  #   Interaction layer (interactive CLI + RemoteLog server)
+│   ├── back/                 #   Business layer (ManagerLink server, task scheduling, RemoteLog server)
+│   │   ├── main.go           #   back process entry
+│   │   ├── server/           #   ManagerLink gRPC server (task scheduling)
+│   │   ├── receiveremote/    #   RemoteLog gRPC server (report receiving)
+│   │   ├── manager/          #   Task/id management
+│   │   ├── noderegistry/     #   Node URL registry (TRAIN / DATA nodes)
+│   │   ├── sender/           #   Training-side gRPC client
+│   │   ├── Database/         #   Data-side gRPC client
+│   │   ├── selector/         #   Data filtering criteria
+│   │   ├── taskdb/           #   Task repository (bbolt)
+│   │   └── commandLine/      #   Business-layer command handlers
+│   ├── cmd/                  #   Interaction layer (interactive CLI)
+│   │   ├── main.go           #   cmd process entry
+│   │   └── cmdClient/        #   ManagerLink gRPC client
 │   ├── config/               #   Configuration types and loading
-│   ├── pkg/                  #   General tools (logs, time, command reading)
-│   ├── manager/              #   Task/id management
-│   ├── sender/               #   Training-side gRPC client
-│   ├── Database/             #   Data-side gRPC client
-│   ├── selector/             #   Data filtering criteria
-│   ├── taskdb/               #   Task repository (bbolt)
-│   └── commandLine/          #   Business-layer command handlers
+│   └── pkg/                  #   General tools (logs, time, command reading)
 ├── DatabasePlugin/           # Go module "database" — Data Node
 │   ├── main.go
 │   ├── receive/              #   DatabaseLink gRPC server
@@ -63,6 +66,7 @@ program/
 │   ├── report/               #   RemoteLog gRPC client (reporting to master control)
 │   ├── handler/              #   MySQL query + data preprocessing (image/text/json)
 │   ├── controller/           #   Worker dispatch
+│   ├── errortable/           #   Error-rate record table (40% threshold)
 │   ├── manager/              #   Task/id management
 │   └── pkg/                  #   Logging helpers
 └── TrainPlugin/              # Python — Training Node
@@ -100,7 +104,7 @@ program/
 
 | Variable           | Required | Default | Description                                                          |
 |--------------------|----------|---------|----------------------------------------------------------------------|
-| `TRAINCONFIG_PATH` | Yes      | —       | Log file directory (`<directory>/<task-id>.txt`)                     |
+| `TRAINCONFIG_PATH` | Yes      | —       | Log file directory (`<directory>/<task-id>.txt`) and node registry (`nodes.txt`) |
 | `REMOTE_URL`       | No       | —       | Master control `RemoteLog` service address                           |
 | `BACKPATH`         | No       | —       | Startup path used when the master control business layer is unreachable |
 
@@ -108,11 +112,11 @@ program/
 
 | Port     | Service        | Server                | Client                | Methods                                                                                          |
 |----------|----------------|-----------------------|-----------------------|---------------------------------------------------------------------------------------------------|
-| `:50051` | `ManagerLink`  | Master Control (back) | Master Control (cmd)  | `CheckManager`, `ApplyManager`, `TaskManager`, `CancelManager`, `Exit`, `DeleteTaskDb`, `ViewTaskDb` |
-| `:50051` | `DatabaseLink` | Data Node             | Master Control (back) | `SendToDatabase`, `Cancel`                                                                        |
-| `:50052` | `Training`     | Training Node         | Master Control (back) | `SendToTrain`, `QueryTraining`, `CancelTraining`                                                  |
+| `:50051` | `ManagerLink`  | Master Control (back) | Master Control (cmd)  | `CheckManager`, `ApplyManager`, `TaskManager`, `CancelManager`, `Exit`, `DeleteTaskDb`, `ViewTaskDb`, `CheckNode`, `JoinNode`, `DeleteNode` |
+| `:50051` | `DatabaseLink` | Data Node             | Master Control (back) | `SendToDatabase`, `Cancel`, `CheckNode`                                                           |
+| `:50052` | `Training`     | Training Node         | Master Control (back) | `SendToTrain`, `QueryTraining`, `CancelTraining`, `CheckNode`                                     |
 | `:50054` | `WithTrain`    | Training Node         | Data Node             | `Check`, `SendTrain`, `Finish`, `ReportError`                                                     |
-| `:50053` | `RemoteLog`    | Master Control (cmd)  | Training Node / Data Node | `TrainRemote`, `DatabaseRemote`                                                               |
+| `:50053` | `RemoteLog`    | Master Control (back) | Training Node / Data Node | `TrainRemote`, `DatabaseRemote`                                                               |
 
 > The master control and the data node both listen on `50051`, but they should be deployed on different machines.
 
@@ -128,7 +132,9 @@ The command reads from standard input. Each parameter can be passed either by po
 | `task`         | `task <all> <id>`             | Query task status; `<all>` is `true`/`false` (all tasks vs a single task id) |
 | `cancel`       | `cancel <all> <id>`           | Cancel task(s)                                                             |
 | `checkLog`     | `checkLog <id> [start] [end]` | Print the task log in `TRAINCONFIG_PATH/<id>.txt`                          |
-| `checknode`    | `checknode [id]`              | Show CPU/memory/disk/diskIO of the task's training/data nodes (`id` empty = all tasks) |
+| `checknode`    | `checknode [id]`              | Show CPU/memory/disk/diskIO of nodes (`id` empty = all registered node URLs) |
+| `joinnode`     | `joinnode <type> <url...>`    | Add node URL(s) to the registry (`type` = `TRAIN` / `DATA`)                 |
+| `deletenode`   | `deletenode <url...>`         | Remove node URL(s) from the registry                                        |
 | `viewtaskdb`   | `viewtaskdb <key> <time>`     | View a record in the task repository                                       |
 | `deletetaskdb` | `deletetaskdb <key> <time>`   | Delete a record from the task repository                                   |
 | `exit`         | `exit`                        | Exit the console (the **only** way for the process to terminate)           |
@@ -152,21 +158,41 @@ checkLog task-001 2026-08-20-00:00:00 2026-08-20-23:59:59
 
 ### `checknode`
 
-Show the machine status (CPU, memory, disk, and disk I/O usage) of the training
-node and the data node assigned to a task. `id` may be omitted to query all
-applied tasks.
+Show the machine status (CPU, memory, disk, and disk I/O usage) of nodes. With an
+`id` given, only that task's training/data nodes are queried; with no `id`, **all
+registered node URLs** are queried. Nodes whose query fails show `-1` for every
+metric.
 
 ```bash
-checknode          # all applied tasks
-checknode task-001 # a single task
+checknode          # all registered node URLs
+checknode task-001 # a single task's nodes
 ```
 
-Output columns: `ID`, `NODE` (`train` / `database`), `CPU`, `MEMORY`, `DISK`,
-`DISKIO` (all percentages).
+Output columns: `URL`, `TRAIN/DATA`, `CPU`, `MEMORY`, `DISK`, `DISKIO`, `ID`
+(all percentages). Each node URL is one row; the `ID` column lists
+(comma-separated) the task ids currently carried by that node.
 
 > Recommendation: before assigning `train_backend_url` / `train_data_url` in a
 > task's configuration, run `checknode` to confirm the target training/data nodes
 > are alive and under reasonable load.
+
+### `joinnode` / `deletenode`
+
+Add or remove node URLs in the node registry (persisted to
+`TRAINCONFIG_PATH/nodes.txt`).
+
+```bash
+joinnode TRAIN 127.0.0.1:50052   # add a TRAIN node
+joinnode DATA 127.0.0.1:50051    # add a DATA node
+deletenode 127.0.0.1:50052       # remove a node
+```
+
+- `joinnode <type> <url...>`: `type` is `TRAIN` or `DATA`; registers the given URLs.
+- `deletenode <url...>`: removes the given URLs.
+
+Node URLs are also registered automatically when a task is applied (its
+`train_backend_url` as `TRAIN` and its `db` address as `DATA`); the registry is
+persisted to `TRAINCONFIG_PATH/nodes.txt` when the back process exits.
 
 ### Task Time Limit (`TimeOut`)
 
@@ -328,6 +354,13 @@ file with the trained weights.
   spool file is deleted) before it ever starts, while a preparing task is aborted
   and has its buffer and spool file discarded; the data node stops feeding that
   task once it observes `no matching training task`.
+- **Error-rate threshold** (Data Node): a task is only aborted after its
+  processing error rate reaches 40%. Each task registers an error record (id,
+  threshold = `ceil(40% × total samples)`, and an occurred counter); workers
+  atomically increment the counter on `Handle`/`SendToTrain` errors, and only when
+  it reaches the threshold does the data node report to the master control and
+  stop that task's preprocessing (`no matching training task` still stops
+  immediately and is not counted).
 
 ### 8.2 Optimizations
 
