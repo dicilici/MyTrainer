@@ -355,12 +355,15 @@ file with the trained weights.
   and has its buffer and spool file discarded; the data node stops feeding that
   task once it observes `no matching training task`.
 - **Error-rate threshold** (Data Node): a task is only aborted after its
-  processing error rate reaches 40%. Each task registers an error record (id,
-  threshold = `ceil(40% × total samples)`, and an occurred counter); workers
-  atomically increment the counter on `Handle`/`SendToTrain` errors, and only when
-  it reaches the threshold does the data node report to the master control and
-  stop that task's preprocessing (`no matching training task` still stops
-  immediately and is not counted).
+  processing error rate reaches 40%. The total is the task's **sample count**
+  (`SUM(sample_count)` over the `data` table: an image/text file counts 1, a json
+  file counts its lines), and errors are counted **per sample** — a bad json
+  line/image is one error, and a file that cannot be opened counts its whole
+  `sample_count`. Each task registers an error record (id, threshold =
+  `ceil(40% × total samples)`, occurred); workers atomically add the error count,
+  and only when it reaches the threshold does the data node report to the master
+  control and stop that task (`no matching training task` still stops immediately
+  and is not counted).
 
 ### 8.2 Optimizations
 

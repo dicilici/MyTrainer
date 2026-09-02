@@ -10,11 +10,12 @@ import (
 )
 
 type Data struct {
-	ID    int `gorm:"primaryKey"`
-	Path  string
-	Type  string
-	Dtype string
-	date  time.Time
+	ID          int `gorm:"primaryKey"`
+	Path        string
+	Type        string
+	Dtype       string
+	SampleCount int64
+	date        time.Time
 }
 
 func SelectFunc(db *gorm.DB, ss []Select) (*gorm.DB, error) {

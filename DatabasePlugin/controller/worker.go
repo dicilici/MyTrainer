@@ -54,23 +54,26 @@ func (w *DefaultWorker) Work(wid int, s send.Sender, h handler.Handler, m manage
 				}
 			}
 			timer.Reset(time.Second * 10)
-			ss, err := h.Handle(task)
-			if err != nil {
-				if w.countError(s, m, err) {
+			ss, errorCount, err := h.Handle(task)
+			if errorCount > 0 && w.countErrors(s, m, errorCount, err) {
+				if err != nil {
 					return err
 				}
-				continue
+				return errors.New("error rate reached threshold")
 			}
-			err = s.SendToTrain(&ss)
-			if err != nil {
-				if errors.Is(err, send.ErrTaskStopped) {
-					_ = m.Stop(w.Id)
-					return nil
+			if len(ss.Inputs) > 0 {
+				err = s.SendToTrain(&ss)
+				if err != nil {
+					if errors.Is(err, send.ErrTaskStopped) {
+						_ = m.Stop(w.Id)
+						return nil
+					}
+					pkg.MuxLog(w.file, err, w.Id, false, w.mux)
+					if w.countErrors(s, m, 1, err) {
+						return err
+					}
+					continue
 				}
-				if w.countError(s, m, err) {
-					return err
-				}
-				continue
 			}
 		case <-timer.C:
 			SingleList <- wid
@@ -94,14 +97,17 @@ func (w *DefaultWorker) Work(wid int, s send.Sender, h handler.Handler, m manage
 	}
 }
 
-func (w *DefaultWorker) countError(s send.Sender, m manager.Manager, err error) bool {
-	pkg.MuxLog(w.file, err, w.Id, false, w.mux)
-	reached, e := w.et.AddError(w.Id)
+func (w *DefaultWorker) countErrors(s send.Sender, m manager.Manager, n int64, err error) bool {
+	reached, e := w.et.AddErrors(w.Id, n)
 	if e == nil && reached {
-		if w.reporter != nil {
-			w.reporter.Report("controller", err.Error(), w.Id)
+		msg := "error rate reached 40%"
+		if err != nil {
+			msg = err.Error()
 		}
-		_ = s.ReportError(err.Error())
+		if w.reporter != nil {
+			w.reporter.Report("controller", msg, w.Id)
+		}
+		_ = s.ReportError(msg)
 		_ = m.Stop(w.Id)
 		return true
 	}

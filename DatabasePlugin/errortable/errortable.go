@@ -13,7 +13,7 @@ type Record struct {
 
 type ErrorTable interface {
 	Insert(id string, threshold int64) error
-	AddError(id string) (bool, error)
+	AddErrors(id string, n int64) (bool, error)
 	Remove(id string) error
 }
 
@@ -39,14 +39,14 @@ func (t *DefaultErrorTable) Insert(id string, threshold int64) error {
 	return nil
 }
 
-func (t *DefaultErrorTable) AddError(id string) (bool, error) {
+func (t *DefaultErrorTable) AddErrors(id string, n int64) (bool, error) {
 	t.mux.Lock()
 	defer t.mux.Unlock()
 	r, ok := t.records[id]
 	if !ok {
 		return false, errors.New("record not found")
 	}
-	r.Occurred++
+	r.Occurred += n
 	if r.Occurred >= r.Threshold {
 		delete(t.records, id)
 		return true, nil

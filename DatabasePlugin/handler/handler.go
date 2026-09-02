@@ -28,16 +28,17 @@ const maxConcurrentIO = 10
 var ioSem = make(chan struct{}, maxConcurrentIO)
 
 type Handler interface {
-	Handle(HandleTask) (send.ToTrain, error)
+	Handle(HandleTask) (send.ToTrain, int64, error)
 	Get(lastID, limit int) ([]HandleTask, int, error)
 	Count() (int64, error)
 	DisConnect() error
 }
 
 type HandleTask struct {
-	Type  string
-	Path  string
-	DType string
+	Type        string
+	Path        string
+	DType       string
+	SampleCount int64
 }
 
 type Select struct {
@@ -97,9 +98,10 @@ func (h *DefaultHandler) Get(lastID, limit int) ([]HandleTask, int, error) {
 		cursor := lastID
 		for _, data := range datas {
 			re = append(re, HandleTask{
-				Type:  data.Type,
-				Path:  data.Path,
-				DType: data.Dtype,
+				Type:        data.Type,
+				Path:        data.Path,
+				DType:       data.Dtype,
+				SampleCount: data.SampleCount,
 			})
 			if data.ID > cursor {
 				cursor = data.ID
@@ -122,13 +124,13 @@ func (h *DefaultHandler) Count() (int64, error) {
 		return 0, err
 	}
 	var total int64
-	if err := db.Model(&Data{}).Count(&total).Error; err != nil {
+	if err := db.Model(&Data{}).Select("COALESCE(CAST(SUM(sample_count) AS SIGNED), 0)").Row().Scan(&total); err != nil {
 		return 0, err
 	}
 	return total, nil
 }
 
-func (h *DefaultHandler) Handle(t HandleTask) (send.ToTrain, error) {
+func (h *DefaultHandler) Handle(t HandleTask) (send.ToTrain, int64, error) {
 	ioSem <- struct{}{}
 	defer func() { <-ioSem }()
 
@@ -142,36 +144,38 @@ func (h *DefaultHandler) Handle(t HandleTask) (send.ToTrain, error) {
 		tensor, err := imageToTensor(t.Path)
 		if err != nil {
 			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
-			return send.ToTrain{}, err
+			return send.ToTrain{}, 1, err
 		}
 		re.Inputs[t.DType] = tensor
 	case "txt":
 		tensor, err := textToTensor(t.Path)
 		if err != nil {
 			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
-			return send.ToTrain{}, err
+			return send.ToTrain{}, 1, err
 		}
 		re.Inputs[t.DType] = tensor
 	case "json":
-		images, words, err := parseJSON(t.Path)
+		samples, badLines, err := h.parseJSON(t.Path)
 		if err != nil {
 			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
-			return send.ToTrain{}, err
+			return send.ToTrain{}, t.SampleCount, err
 		}
-		imgTensor, err := imagesToTensor(images)
-		if err != nil {
-			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
-			return send.ToTrain{}, err
+		imgTensor, goodIdx, badImages := h.imagesToTensor(samples)
+		if len(goodIdx) > 0 {
+			goodWords := make([]string, 0, len(goodIdx))
+			for _, i := range goodIdx {
+				goodWords = append(goodWords, samples[i].Word)
+			}
+			re.Inputs["image"] = imgTensor
+			re.Inputs["word"] = wordsToTensor(goodWords)
 		}
-		wordTensor := wordsToTensor(words)
-		re.Inputs["image"] = imgTensor
-		re.Inputs["word"] = wordTensor
+		return re, badLines + badImages, nil
 	default:
 		err := fmt.Errorf("unsupported dtype: %s", t.DType)
 		pkg.MuxLog(h.file, err, h.Id, false, h.mux)
-		return send.ToTrain{}, err
+		return send.ToTrain{}, 1, err
 	}
-	return re, nil
+	return re, 0, nil
 }
 
 const (
@@ -255,15 +259,16 @@ type jsonSample struct {
 	Word  string `json:"word"`
 }
 
-func parseJSON(path string) ([]string, []string, error) {
+func (h *DefaultHandler) parseJSON(path string) ([]jsonSample, int64, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, nil, err
+		return nil, 0, err
 	}
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 64*1024), 1024*1024)
-	var images, words []string
+	var samples []jsonSample
+	var badLines int64
 	var s jsonSample
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
@@ -271,29 +276,35 @@ func parseJSON(path string) ([]string, []string, error) {
 			continue
 		}
 		if err := json.Unmarshal([]byte(line), &s); err != nil {
-			return nil, nil, err
+			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
+			badLines++
+			continue
 		}
-		images = append(images, s.Image)
-		words = append(words, s.Word)
+		samples = append(samples, s)
 	}
 	if err := sc.Err(); err != nil {
-		return nil, nil, err
+		return nil, badLines, err
 	}
-	return images, words, nil
+	return samples, badLines, nil
 }
 
-func imagesToTensor(paths []string) (*send.Tensor, error) {
+func (h *DefaultHandler) imagesToTensor(samples []jsonSample) (*send.Tensor, []int, int64) {
 	buf := new(bytes.Buffer)
 	data := make([]float32, imageWidth*imageHeight*3)
-	for _, p := range paths {
-		if err := writeImageTensor(buf, data, p); err != nil {
-			return nil, err
+	var goodIdx []int
+	var badImages int64
+	for i, s := range samples {
+		if err := writeImageTensor(buf, data, s.Image); err != nil {
+			pkg.MuxLog(h.file, err, h.Id, false, h.mux)
+			badImages++
+			continue
 		}
+		goodIdx = append(goodIdx, i)
 	}
 	return &send.Tensor{
-		Dim:           []int64{int64(len(paths)), imageHeight, imageWidth, 3},
+		Dim:           []int64{int64(len(goodIdx)), imageHeight, imageWidth, 3},
 		TensorContent: buf.Bytes(),
-	}, nil
+	}, goodIdx, badImages
 }
 
 func wordsToTensor(words []string) *send.Tensor {
