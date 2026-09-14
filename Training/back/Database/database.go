@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 	"os"
 	"sync"
-	"train/back/selector"
 	"train/config"
 	"train/pkg"
 )
@@ -17,8 +16,8 @@ func NewCancelMessage() *CancelMessage {
 }
 
 func NewDatabaseConfig(c config.Config) *DatabaseConfig {
-	criterias := make([]*DataCriteria, 0, len(c.Db.Selector.(*selector.DefaultSelector).Conditions))
-	for _, condition := range c.Db.Selector.(*selector.DefaultSelector).Conditions {
+	criterias := make([]*DataCriteria, 0, len(c.Db.Selector))
+	for _, condition := range c.Db.Selector {
 		criterias = append(criterias, &DataCriteria{
 			Field:    condition.Field,
 			Value:    condition.Value,

@@ -240,6 +240,7 @@ the Go struct `config.Config`.
 | `Port`     | int    | Database port     |
 | `Account`  | string | Account           |
 | `Password` | string | Password          |
+| `Selector` | array  | Data filter criteria (a list of `{Field, Operator, Value}` objects) |
 
 ### `dataset` fields
 
@@ -263,8 +264,9 @@ the Go struct `config.Config`.
 | `LogSave`         | string | Log file name                                        |
 | `TimeOut`         | string | Training time limit (`d`/`h`/`m`/`s` combos, e.g. `1h30m`) |
 
-> The data filtering criteria (`selector`) are not part of this JSON; they are
-> provided separately via a criteria file (one `field operator value` per line).
+> The data filter criteria are written in the `Selector` array under `db` — a list
+> of `{Field, Operator, Value}` objects (`Field` supports `ID` / `date` etc.,
+> `Operator` supports `gt`/`gte`/`lt`/`lte`/`eq`/`neq`/`before`/`after`).
 
 ### Configuration file example
 
@@ -280,7 +282,11 @@ the Go struct `config.Config`.
     "Address": "127.0.0.1",
     "Port": 3306,
     "Account": "root",
-    "Password": "your_password"
+    "Password": "your_password",
+    "Selector": [
+      { "Field": "date", "Operator": "after", "Value": "2026-01-01" },
+      { "Field": "ID", "Operator": "gt", "Value": "1000" }
+    ]
   },
   "dataset": {
     "Input": "image",

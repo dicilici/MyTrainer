@@ -20,12 +20,12 @@ func NewDefaultConfig() *Config {
 }
 
 type Database struct {
-	DbName   string            `json:"DbName"`
-	Address  string            `json:"Address"`
-	Port     int               `json:"Port"`
-	Account  string            `json:"Account"`
-	Password string            `json:"Password"`
-	Selector selector.Selector `json:"selector"`
+	DbName   string              `json:"DbName"`
+	Address  string              `json:"Address"`
+	Port     int                 `json:"Port"`
+	Account  string              `json:"Account"`
+	Password string              `json:"Password"`
+	Selector []selector.Criteria `json:"Selector"`
 }
 
 type Dataset struct {
